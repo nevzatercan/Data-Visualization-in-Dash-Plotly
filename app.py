@@ -23,14 +23,14 @@ from ipywidgets import widgets
 import urllib.request, json,webbrowser,requests,random
 from googletrans import Translator
 
-
 app = dash.Dash(__name__)
+
 app.config.suppress_callback_exceptions = True
 
 
 # Veri setlerini yükleme
 df_death = pd.read_csv('death.csv', header=6, on_bad_lines='skip', sep=';')
-df_air = pd.read_csv('air.csv', header=0, sep=',', encoding="windows-1252")
+df_air = pd.read_csv('air.csv', header=0, sep=',')
 df_covid = pd.read_csv('covid.csv', header=0, sep=',')
 df_death['Percentage of cause-specific deaths out of total deaths'] = df_death['Percentage of cause-specific deaths out of total deaths'].astype(float)
 df_air['FactValueNumeric'] = df_air['FactValueNumeric'].astype(float)
@@ -203,24 +203,94 @@ sqlmerged_df = sqlmerged_df.drop(columns=sutunlar_cikarilacak2)
 
 # Renk kodlarını ayarlama
 threshold_color_map = {
-    'green': '#00FF00',  # Yeşil
-    'red': '#FF0000'      # Kırmızı
+    'green': '#b3eb73',
+    'yellow': '#fbed71',
+    'orange': '#efb35d',
+    'red': '#e86c75'
 }
 
-# Hücrelerin içindeki sayıya göre renk ayarları
 data_style = []
-for column in sqlmerged_df.columns:
-    if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int64':
-        data_style.append({
-            'if': {'column_id': column, 'filter_query': '{{{}}} >= 20'.format(column)},
-            'backgroundColor': threshold_color_map['green'],
-            'color': 'white'
-        })
-        data_style.append({
-            'if': {'column_id': column, 'filter_query': '{{{}}} < 20'.format(column)},
-            'backgroundColor': threshold_color_map['red'],
-            'color': 'white'
-        })
+
+# Stil ayarlarını 'Number' sütununa uygulama
+column = 'Number'
+
+if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int64':
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 0 && {{{}}} < 10000'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['green'],
+        'color': 'white'
+    })
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 10000 && {{{}}} < 20000'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['yellow'],
+        'color': 'white'
+    })
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 20000 && {{{}}} < 50000'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['orange'],
+        'color': 'white'
+    })
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 50000'.format(column)
+        },
+        'backgroundColor': threshold_color_map['red'],
+        'color': 'white'
+    })
+
+# Stil ayarlarını 'Percentage of cause-specific deaths out of total deaths' sütununa uygulama
+column = 'Percentage of cause-specific deaths out of total deaths'
+
+if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int64':
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 0 && {{{}}} < 3'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['green'],
+        'color': 'white'
+    })
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 3 && {{{}}} < 6'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['yellow'],
+        'color': 'white'
+    })
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 6 && {{{}}} < 9'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['orange'],
+        'color': 'white'
+    })
+    data_style.append({
+        'if': {
+            'column_id': column,
+            'filter_query': '{{{}}} >= 9 && {{{}}} < 101'.format(column, column)
+        },
+        'backgroundColor': threshold_color_map['red'],
+        'color': 'white'
+    })
+
+# Bu noktada data_style listesi hem 'Number' hem de 'Percentage of cause-specific deaths out of total deaths' sütunları için gerekli stil ayarlarını içerecek
+
+
+
+
+
 
 
 ######ülke isimlerini türkçe alma
@@ -231,7 +301,6 @@ translator = Translator()
 def translate_to_turkish(text):
     translation = translator.translate(text, src='en', dest='tr')
     return translation.text
-
 
 ###
 
@@ -247,9 +316,9 @@ app.layout = html.Div([
 html.Div([
     html.Div([
         html.Div([
-            html.Div(id='info_circle1',style={'width':'50px','height':'50px','border-radius': '50%','background-color': '#007bff'}),
-            html.Div(id='info_circle2',style={'width':'50px','height':'50px','border-radius': '50%','background-color': '#007bff'}),
-            html.Div(id='info_circle3',style={'width':'50px','height':'50px','border-radius': '50%','background-color': '#007bff'}),
+            html.Div([html.Img(src='assets/world.png',style={'width':'100%'})],id='info_circle1',style={'width':'50px','height':'50px','border-radius': '50%','background-color': 'rgba(255, 255, 255, 0.93)','border':'1px solid black','box-shadow': 'rgba(0, 0, 0, 0.35) 0px 5px 15px'}),
+            html.Div([html.Img(src='assets/table.png',style={'width':'82%','margin':'9%'})],id='info_circle2',style={'width':'50px','height':'50px','border-radius': '50%','background-color': 'rgba(255, 255, 255, 0.93)','border':'1px solid black','box-shadow': 'rgba(0, 0, 0, 0.35) 0px 5px 15px'}),
+            html.Div([html.Img(src='assets/media.png',style={'width':'85%','margin':'7%','margin-top':'12%'})],id='info_circle3',style={'width':'50px','height':'50px','border-radius': '50%','background-color': 'rgba(255, 255, 255, 0.93)','border':'1px solid black','box-shadow': 'rgba(0, 0, 0, 0.35) 0px 5px 15px'}),
         ], style={'display': 'flex', 'justify-content': 'space-around', 'align-items': 'center', 'height': '100%'})
     ],
     id="info_icons",
@@ -263,6 +332,9 @@ html.Div([
                 step=1,
                 value=2010,
                 marks={i: str(i) for i in range(2010, 2020)},
+                tooltip={"placement": "bottom", "always_visible": True},
+                updatemode='drag',
+                className='custom-slider'
             ),
         ],
         style={'float': 'right','width': '100%','margin-top': '3%', 'left': '0px','z-index':'9'}),
@@ -305,16 +377,27 @@ style={'position': 'fixed', 'bottom': '4px', 'left': '0', 'width': '100%', 'heig
     ],
     style={'position': 'absolute','top': '0px !important', 'left': '0px !important','overflow-y':'hidden','margin-top':'-4.6%'}),
     html.Div([
-        html.Div([html.Img(src='',style={'width':'80%','height':'20%','margin-left':'10%','margin-right':'10%','margin-top':'10%'},id = 'pm25img'),
-                  dcc.Graph(id ='gösterge',figure={}),
-                  html.P(id='text2',style={'font-size':'14px','text-align':'center','margin-top':'-30px','font-weight': 'bold', 'font-family': 'Arial','margin-left': '3%', 'margin-right': '3%'}),
-                  html.P("Son verilere göre: ",id='text1',style={'font-size':'20px','text-align':'center','margin-top': '15%','margin-bottom': '-3%'}),
-                  dcc.Graph(id ='kursun',figure={})
-                  ],id='side_clicked_location',style={'display':'none'}),
+    html.Div([
+        html.Img(src='', style={'width': '80%', 'height': '20%', 'margin-left': '10%', 'margin-right': '10%', 'margin-top': '10%'}, id='pm25img'),
+        dcc.Graph(id='gösterge', figure={}),
+        html.P(id='text2', style={'font-size': '14px', 'text-align': 'center', 'margin-top': '-30px', 'font-weight': 'bold', 'font-family': 'Arial', 'margin-left': '3%', 'margin-right': '3%'}),
+        html.P("Son verilere göre: ", id='text1', style={'font-size': '20px', 'text-align': 'center', 'margin-top': '15%', 'margin-bottom': '-3%'}),
+        dcc.Graph(id='kursun', figure={}),
+        html.Div([
+            html.Div([
+                html.Img(src="assets/çizgi.png", style={'vertical-align': 'middle','width':'5%','padding-left':'3%','margin-right':'-4%'}),
+                html.P(": Tüm yılların ortalama değeri ", style={'display': 'inline-block', 'margin-left': '10px', 'vertical-align': 'middle','font-size':'59%'}),
+
+                html.Img(src="assets/çizgi2.png", style={'vertical-align': 'middle','width':'11%', 'padding-left':'7%'}),
+                html.P(": Son yılın değeri", style={'display': 'inline-block', 'vertical-align': 'middle','font-size':'59%','margin-left':'1.5%'}),
+            ], style={'display': 'flex', 'align-items': 'center'}),
+        ]),
+    ], id='side_clicked_location', style={'display': 'none'}),
+
         html.Div([
             html.Div(
                 id="closeButton", 
-                children="&times;",  
+                children="×",  
                 style={
                     'position': 'absolute', 
                     'top': '10px', 
@@ -372,52 +455,101 @@ html.Table([
 html.Div([
     html.Div(
         id="closeButton2", 
-        children="&times;",  
+        children="×",  
         style={
             'position': 'absolute', 
             'top': '10px', 
             'right': '20px', 
             'font-size': '24px', 
-            'color': 'white', 
+            'color': 'black', 
             'cursor': 'pointer',
             'display':'block',
             'z-index': '9999'
         }
     ),
 
+html.Div([
+    html.P("Bölgelere Göre PM2.5 Seviyeleri", style={'color':'black', 'font-size':'145%', 'margin-bottom':'2%'}),
+    html.Img(src='', style={'width':'100%','margin-top':'1%','height':'69%'}, id='BolgeHaritasi'),
     html.Div([
-        html.Img(src='',style={'width':'100%','margin-top':'12%'},id = 'BolgeHaritasi'),
-        ],
-        id="left_div",
-        style={
-            'height': '100%',
-            'width': '65%',
-            'float': 'left',
-            'background-color': 'rgba(255, 255, 255, 0.1)'  # Örnek arkaplan rengi
-        }
-    ),
+        html.Div([
+            html.P("Afrika: ", style={'display':'inline'}),
+            html.Span("29.11 μm", style={'border': '1px solid black', 'padding': '2px', 'margin-left': '5px','margin-right':'-11%','background-color':'#e3a96d'}),
+        ],style={'margin-top':'10%','margin-bottom':'10%'}),
+        html.Div([
+            html.P("Batı Pasifik: ", style={'display':'inline'}),
+            html.Span("17.06 μm", style={'border': '1px solid black', 'padding': '2px', 'margin-left': '5px','background-color':'#bfe982'}),
+        ]),
+    ], style={'width': '33%', 'float': 'left','border-right':'1px solid black','height':'18%'}),
+    html.Div([
+        html.Div([
+            html.P("Amerika: ", style={'display':'inline','margin-left':'-5%'}),
+            html.Span("14.61 μm", style={'border': '1px solid black', 'padding': '2px', 'margin-left': '5px','margin-right':'-24%','background-color':'#bfe982'}),
+        ],style={'margin-top':'10%','margin-bottom':'10%'}),
+        html.Div([
+            html.P("Güneydoğu Asya: ", style={'display':'inline'}),
+            html.Span("29.81 μm", style={'border': '1px solid black', 'padding': '2px', 'margin-left': '5px','background-color':'#e3a96d'}),
+        ]),
+    ], style={'width': '33%', 'float': 'left','border-right':'1px solid black','height':'18%'}),
+    html.Div([
+        html.Div([
+            html.P("Avrupa: ", style={'display':'inline','margin-left':'-17%',}),
+            html.Span("19.22 μm", style={'border': '1px solid black', 'padding': '2px', 'margin-left': '5px','margin-right':'-21%','background-color':'#ddeb83' }),
+        ],style={'margin-top':'10%','margin-bottom':'10%'}),
+        html.Div([
+            html.P("Ortadoğu: ", style={'display':'inline'}),
+            html.Span("40.89 μm", style={'border': '1px solid black', 'padding': '2px', 'margin-left': '5px','background-color':'#d97378'}),
+        ]),
+    ], style={'width': '33%', 'float': 'left'}),
+],
+id="left_div",
+style={
+    'height': '100%',
+    'width': '64%',  # Adjusted width to account for the margin
+    'float': 'left',
+    'background-color': 'rgba(255, 255, 255, 0.93)',
+    'border-top-left-radius': '21px',
+    'border-bottom-left-radius': '21px',
+    'border':'2px solid rgba(0, 0, 0, 0.73)',
+    'box-sizing':'border-box',
+    'margin-right': '1%',  # Add margin to the right
+}
+),
+
+
+
 
     html.Div([
-        dcc.Graph(id='sunburst',figure={},config={'displayModeBar': False})
+        dcc.Graph(id='sunburst', figure={}, config={'displayModeBar': False})
         ],
         id="top_right_div",
         style={
             'height': '50%',
-            'width': '35%',
+            'width': '34%',  # Adjusted width to account for the margin
             'float': 'left',
-            'background-color': 'rgba(255, 255, 255, 0.2)'  # Örnek arkaplan rengi
+            'background-color': 'rgba(255, 255, 255, 0.93)',
+            'margin-left': '1%',  # Add margin to the left
+            'border': '2px solid rgba(0, 0, 0, 0.73)',
+            'box-sizing': 'border-box',
+            'border-top-right-radius': '21px',
         }
     ),
 
     html.Div([
-        dcc.Graph(id='linearea',figure={},config={'displayModeBar': False})
+        dcc.Graph(id='linearea', figure={}, config={'displayModeBar': False})
         ],
         id="bottom_right_div",
         style={
             'height': '50%',
-            'width': '35%',
+            'width': '34%',  # Adjusted width to account for the margin
             'float': 'left',
-            'background-color': 'rgba(255, 255, 255, 0.3)'  # Örnek arkaplan rengi
+            'background-color': 'rgba(255, 255, 255, 0.93)',
+            'margin-left': '1%',  # Add margin to the left
+            'border-bottom': '2px solid rgba(0, 0, 0, 0.73)',
+            'border-left': '2px solid rgba(0, 0, 0, 0.73)',
+            'border-right': '2px solid rgba(0, 0, 0, 0.73)',
+            'box-sizing': 'border-box',
+            'border-bottom-right-radius': '21px',
         }
     ),
 ],
@@ -430,15 +562,16 @@ style={
     'margin-left': '5%',
     'width': '90%',
     'height': '80%',
-    'background-color': 'rgba(0, 0, 0, 0.8)',
+
     'z-index': '1000',
     'display': 'none'
 }),
 
+
 html.Div([
     html.Div(
         id="closeButton3", 
-        children="&times;",  
+        children="×",  
         style={
             'position': 'absolute', 
             'top': '10px', 
@@ -451,7 +584,8 @@ html.Div([
         }
     ),
     
-    html.Div(
+    html.Div([
+        html.P("PM2.5 ve SOLUNUM YOLU HASTALIKLARINA BAĞLI ÖLÜM VERİLERİ TABLOSU",style={'color':'white','margin-left':'27%','font-size':'110%'}),
         dash_table.DataTable(
             id='table',
             columns=[{"name": i, "id": i} for i in sqlmerged_df.columns],
@@ -465,9 +599,11 @@ html.Div([
             style_table={
                 'overflowX': 'auto',
                 'height': '100%',
-                'width': '100%'
+                'width': '100%',
             },
         ),
+        ],
+
         style={
             'height': '100%',  # Kapsayıcı div'in yüksekliği
             'width': '100%'    # Kapsayıcı div'in genişliği
@@ -486,7 +622,9 @@ html.Div([
         'background-color': 'rgba(0, 0, 0, 0.8)',
         'z-index': '1000',
         'display': 'none',
-        'overflow': 'hidden'  # Taşmayı gizlemek için
+        'overflow': 'hidden',  # Taşmayı gizlemek için
+        'border':'5px solid white',
+        'box-sizing':'borderbox'
     }
 )
 ])
@@ -1080,7 +1218,7 @@ def pasta(option_slctd,clickData):
     # Dıştaki pasta grafiği
     outer_pie = go.Pie(
         labels=labels,
-        values=formatted_values,
+        values=formatted_values2,
         textinfo='value',
         name='Outer Pie',
         hole=0.2, # İçteki pastanın boyutunu ayarlar, 0'dan 1'e kadar bir değer
@@ -1091,7 +1229,7 @@ def pasta(option_slctd,clickData):
     # İçteki pasta grafiği
     inner_pie = go.Pie(
         labels=labels,
-        values=formatted_values2,
+        values=formatted_values,
         name='Inner Pie',
         textinfo='value',
         hole=0.8, # Daha küçük bir değer seçebilirsiniz
@@ -1113,15 +1251,40 @@ def pasta(option_slctd,clickData):
         # Pie Chartın ortasına boşluk ekleme
         annotations=[
             dict(
-                text = '<span style="color:black">' + str(country_name) + ' ve Dünyanın<br>yerleşim bölgelerine göre  <br>pm2.5 ortalaması</span> <br><span style="font-size:16; color:black">' ,
-                x=1.1, y=0.95,
+                text='<span style="color:black">' + str(country_name) + ' ve Dünyanın<br>yerleşim bölgelerine göre  <br>pm2.5 ortalaması</span> <br><span style="font-size:16; color:black">' ,
+                x=1.05, y=0.95,
                 font_size=16,
+                showarrow=False
+            ),
+            # Yeni metni ekleyin
+            dict(
+                text='<span style="text-align: left; display: inline-block;">Şehir: en az 50.000 nüfuslu (km2 başına >1.500 nüfuslu)</span>',
+                x=1.05, y=0.09,  # Yatay ve dikey konumunu ayarlayın
+                font_size=9,
+                showarrow=False
+            ),
+            dict(
+                text='<span style="text-align: left; display: inline-block;">Kentsel: en az 5.000 nüfuslu (km2 başına >300 nüfuslu)</span>',
+                x=1.03, y=0.06,  # Yatay ve dikey konumunu ayarlayın
+                font_size=9,
+                showarrow=False
+            ),
+            dict(
+                text='<span style="text-align: left; display: inline-block;">Kırsal: en az 1.000 nüfuslu (km2 başına <300 nüfuslu)</span>',
+                x=0.498, y=0.03,  # Yatay ve dikey konumunu ayarlayın
+                font_size=9,
+                showarrow=False
+            ),
+            dict(
+                text='<span style="text-align: left; display: inline-block;">Kasaba: en az 1.000 nüfuslu (km2 başına >300 nüfuslu)</span>',
+                x=1.03, y=0,  # Yatay ve dikey konumunu ayarlayın
+                font_size=9,
                 showarrow=False
             )
         ],
-        width = width * 0.23,
-        height = height * 0.495,
-        legend=dict(y=0.5),font=dict(color='black')
+        width=width * 0.23,
+        height=height * 0.495,
+        legend=dict(y=0.5), font=dict(color='black')
     )
 
     
@@ -1214,7 +1377,7 @@ def balon(option_slctd,clickData):
     for key in sorted_dict:
         sumsizes += sorted_dict[key]
         x.append(sumsizes)
-        filtered_death_data = filtereddeath_merged_df.loc[filtereddeath_merged_df["Country Code"] == key, "Number"].astype(float)
+        filtered_death_data = filtereddeath_merged_df.loc[filtereddeath_merged_df["Country Code"] == key, "Percentage of cause-specific deaths out of total deaths"].astype(float)
         if filtered_death_data.empty:
             death.append(0)
         else:
@@ -1225,7 +1388,7 @@ def balon(option_slctd,clickData):
 
     #Baloncuklara yazılacak text'i oluşturmak için
     for i in range(len(all_bubble)):
-        death[i]=int(death[i])
+        death[i]=float(death[i])
         if death[i] == 0:
             death[i] = ''    
         all_bubble[i] = str(list(sorted_dict.keys())[i]) + '<br>' + str(death[i])
@@ -1244,7 +1407,7 @@ def balon(option_slctd,clickData):
         hoverinfo="text",  # Metinleri fareyle üzerine gelindiğinde göster
         textposition="top center",  # Metin konumu
         hovertext=all_bubble,
-        text=all_bubble,
+        text='%' + all_bubble,
         textfont=dict(
             family="Arial",  # Font ailesi
             size=13,         # Metin boyutu
@@ -1287,13 +1450,13 @@ def balon(option_slctd,clickData):
     fig.add_annotation(
         xref="paper",           # Metnin x konumunu kağıdın içindeki bir orana göre belirler
         yref="paper",           # Metnin y konumunu kağıdın içindeki bir orana göre belirler
-        x=0.85,                 # Metnin x konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
+        x=0.95,                 # Metnin x konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
         y=0.05,                 # Metnin y konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
-        text="Baloncukların büyüklükleri havadaki pm2.5 seviyesini, üstündeki değerler ise ölüm sayısını temsil eder.",  # Metin içeriği
+        text="Baloncukların büyüklükleri havadaki pm2.5 seviyesini, üstündeki değerler ise ölüm oranını temsil eder.",  # Metin içeriği
         showarrow=False,        # Ok gösterme
         font=dict(
             family="Arial",     # Font ailesi
-            size=10,            # Metin boyutu
+            size=14,            # Metin boyutu
             color="black"       # Metin rengi
         )
     )
@@ -1331,7 +1494,7 @@ def gösterge(option_slctd,clickData):
                 hole=0.5,
                 marker_colors=quadrant_colors,
                 text=quadrant_text,
-                textfont=dict(size=8,color="black"),
+                textfont=dict(size=7,color="black"),
                 textinfo="text",
                 hoverinfo="skip",
             ),
@@ -1412,7 +1575,8 @@ def kursun(clickData):
             'steps': [
                 {'range': [0, 20], 'color': "#9ade5d"},
                 {'range': [20,35], 'color': "#f0f259"},
-                {'range': [35,65], 'color': "#d3382e"},],
+                {'range': [35, 50], 'color': "#e7a847"},
+                {'range': [50,65], 'color': "#d3382e"},],
             'bar': {'color': "black",'thickness':0.1}
         }
     ))
@@ -1440,9 +1604,10 @@ def kursun(clickData):
                 'value': mean_valuePop,
             },
             'steps': [
-        {'range': [0,40], 'color': "#9ade5d"},
-        {'range': [40,70], 'color': "#f0f259"},
-        {'range': [70,120], 'color': "#d3382e"}],
+        {'range': [0,30], 'color': "#9ade5d"},
+        {'range': [30,60], 'color': "#f0f259"},
+        {'range': [60, 90], 'color': "#e7a847"},
+        {'range': [90,120], 'color': "#d3382e"}],
             'bar': {'color': "black",'thickness':0.1}
         }
     ))
@@ -1471,9 +1636,10 @@ def kursun(clickData):
                 'value': mean_valuePerc,
             },
             'steps': [
-        {'range': [0,5], 'color': "#9ade5d"},
-        {'range': [5,8], 'color': "#f0f259"},
-        {'range': [8,12], 'color': "#d3382e"}],
+        {'range': [0,3], 'color': "#9ade5d"},
+        {'range': [3,6], 'color': "#f0f259"},
+        {'range': [6, 9], 'color': "#e7a847"},
+        {'range': [9,12], 'color': "#d3382e"}],
             'bar': {'color': "black",'thickness':0.1}
         }
     ))
@@ -1700,9 +1866,9 @@ def toggle_info_div(close_clicks,close_clicks2, info_clicks, info_clicks2):
     elif prop_id == 'info_circle1.n_clicks':
         sunburstfig = sunburst()
         lineareafig = linearea()
-        return {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'background-color': 'rgba(0, 0, 0, 0.8)', 'z-index': '1000', 'display': 'block'}, "assets/regionmap.png", sunburstfig, lineareafig, {'display': 'none'}
+        return {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'z-index': '1000', 'display': 'block', 'text-align':'center'}, "assets/maps.png", sunburstfig, lineareafig, {'display': 'none'}
     elif prop_id == 'info_circle2.n_clicks':
-        return {'display': 'none'}, "", {'data': []}, {'data': []}, {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'background-color': 'rgba(0, 0, 0, 0.8)', 'z-index': '1000', 'display': 'block','overflow': 'scroll'}
+        return {'display': 'none'}, "", {'data': []}, {'data': []}, {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'background-color': 'rgba(0, 0, 0, 0.8)', 'z-index': '1000', 'display': 'block','overflow': 'scroll','border':'3px solid white','box-sizing':'borderbox'}
     else:
         raise dash.exceptions.PreventUpdate
 
@@ -1715,14 +1881,30 @@ def sunburst():
             (1, '#e86c75')     ]    
 
     df_air['NormalizationForFactValueNumeric'] = pd.to_numeric(df_air['NormalizationForFactValueNumeric'], errors='coerce')
+    
+    df_air.loc[df_air["ParentLocation"] == "Africa", "ParentLocation"] = "Afrika"
+    df_air.loc[df_air["ParentLocation"] == "South-East Asia", "ParentLocation"] = "Güney Doğu Asya"
+    df_air.loc[df_air["ParentLocation"] == "Europe", "ParentLocation"] = "Avrupa"
+    df_air.loc[df_air["ParentLocation"] == "Americas", "ParentLocation"] = "Amerika"
+    df_air.loc[df_air["ParentLocation"] == "Eastern Mediterranean", "ParentLocation"] = "Ortadoğu"
+    df_air.loc[df_air["ParentLocation"] == "Western Pacific", "ParentLocation"] = "Batı Pasifik"
+    
 
 
     fig = px.sunburst(df_air, path=['ParentLocation', 'Location'], values='NormalizationForFactValueNumeric',
-                      color='NormalizationForFactValueNumeric', hover_data=['ParentLocation'],
+                      color='NormalizationForFactValueNumeric',
                       color_continuous_scale=new_color_scale,
                       color_continuous_midpoint=np.average(df_air['NormalizationForFactValueNumeric'], weights=df_air['NormalizationForFactValueNumeric']))
-
+    
+    fig.update_traces(hovertemplate='')
+    fig.update_traces(hoverinfo='none')
+    
     fig.update_layout(
+        margin=dict(l=0, r=0, t=30, b=30),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        coloraxis_showscale=False,
+        showlegend=False ,
         width = width * 0.315,
         height = height * 0.4)
     return fig.to_dict()
@@ -1736,35 +1918,47 @@ def linearea():
 
     # DataFrame'i "ParentLocation" ve "Period" sütunlarına göre gruplayacak ve her bir grubun ortalamasını hesaplayacak
     region_mean_values = result_df.groupby(["ParentLocation", "Period"]).mean().reset_index()
-
-
+    
+    region_mean_values.loc[region_mean_values["ParentLocation"] == "Africa", "ParentLocation"] = "Afrika"
+    region_mean_values.loc[region_mean_values["ParentLocation"] == "South-East Asia", "ParentLocation"] = "Güney Doğu Asya"
+    region_mean_values.loc[region_mean_values["ParentLocation"] == "Europe", "ParentLocation"] = "Avrupa"
+    region_mean_values.loc[region_mean_values["ParentLocation"] == "Americas", "ParentLocation"] = "Amerika"
+    region_mean_values.loc[region_mean_values["ParentLocation"] == "Eastern Mediterranean", "ParentLocation"] = "Ortadoğu"
+    region_mean_values.loc[region_mean_values["ParentLocation"] == "Western Pacific", "ParentLocation"] = "Batı Pasifik"
 
     color_palette = {
-        'Africa': '#5E1675',                      
-        'South-East Asia': '#39A7FF',                        
-        'Europe': '#337357',                      
-        'Americas': '#FFD23F',  
-        'Eastern Mediterranean': '#211951',
-        'Western Pacific': '#FF4B91'                    
+        'Afrika': '#5E1675',                      
+        'Güney Doğu Asya': '#39A7FF',                        
+        'Avrupa': '#337357',                      
+        'Amerika': '#FFD23F',  
+        'Ortadoğu': '#211951',
+        'Batı Pasifik': '#FF4B91'                    
     }
 
     fig = px.area(region_mean_values, x="Period", y="FactValueNumericHigh", color="ParentLocation", 
                   line_group="ParentLocation", color_discrete_map=color_palette,
+                  labels={
+                   "ParentLocation": "Bölgeler",
+               },
                   custom_data=["Period", "FactValueNumericHigh"])
 
-    fig.update_traces(hovertemplate="<br>".join([
-        "Year: %{customdata[0]}",
-        "Percentage: %{customdata[1]:.3f}"
-    ]), line_width=0)
 
-    fig.update_yaxes(matches=None)
 
     fig.update_layout(
-        plot_bgcolor='white',  # Arka plan rengi
-        paper_bgcolor='white',  # Kağıt rengi (grafik dışındaki alan)
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
         width = width * 0.315,
-        height = height * 0.4
+        height = height * 0.4,
+        legend=dict(
+            font=dict(
+                size=8  # Legend metni için yazı tipi boyutunu ayarla
+            )
+        ),
+        xaxis_tickangle=45,
+        xaxis_title="Yıl",  # x ekseninin adını değiştir
+        yaxis_title="Pm2.5 Seviyesi",   # y ekseninin adını değiştir
     )
+
 
     return fig.to_dict()
 
