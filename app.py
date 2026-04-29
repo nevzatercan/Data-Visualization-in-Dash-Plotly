@@ -27,6 +27,7 @@ app.config.suppress_callback_exceptions = True
 from dashapp.data_loader import load_air, load_merged
 from dashapp.transforms import colorchoose, filter_total, safe_first
 from dashapp.utils.translations import to_turkish
+from dashapp.layout.stores import make_stores, parse_viewport
 import dashapp.charts.histogram as _histogram_chart
 import dashapp.charts.cizgikutu as _cizgikutu_chart
 import dashapp.charts.cizgi as _cizgi_chart
@@ -148,11 +149,7 @@ if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int
 
 # Uygulama düzeni
 app.layout = html.Div([
-    # ── State stores (multi-tab izolasyonu için) ─────────────────────────────
-    dcc.Store(id='viewport-store', storage_type='memory', data={'width': 1300, 'height': 800}),
-    dcc.Store(id='filter-store',   storage_type='memory', data={'is_filtered': 0}),
-    dcc.Store(id='panel-store',    storage_type='memory', data={'is_hidden': 1}),
-    dcc.Store(id='hover-store',    storage_type='memory', data={'last_iso3': ''}),
+    *make_stores(),
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content'),
     html.Div(id='dummy-input', style={'display': 'none'}),
@@ -473,6 +470,15 @@ html.Div([
 )
 ])
 
+# Filtre buton sabitleri — her buton için (flag, tek-renkli-skala, filtre-fn)
+_DEFAULT_SCALE = [(0, '#b3eb73'), (0.33, '#fbed71'), (0.45, '#efb35d'), (1, '#e86c75')]
+_FILTER_CONFIG = {
+    'yesilbuton.n_clicks':    (1, [(0, '#b3eb73'), (1, '#b3eb73')],    lambda df: df[df["FactValueNumeric"] <= 18]),
+    'sarıbuton.n_clicks':     (2, [(0, '#fbed71'), (1, '#fbed71')],    lambda df: df[(df["FactValueNumeric"] > 18) & (df["FactValueNumeric"] <= 31)]),
+    'turuncubutton.n_clicks': (3, [(0, '#efb35d'), (1, '#efb35d')],    lambda df: df[(df["FactValueNumeric"] > 31) & (df["FactValueNumeric"] <= 48)]),
+    'kırmızıbuton.n_clicks':  (4, [(0, '#e86c75'), (1, '#e86c75')],    lambda df: df[df["FactValueNumeric"] > 48]),
+}
+
 # Map haritasının güncelleme callback'i
 @app.callback(
     [Output('Harita', 'figure'),
@@ -485,106 +491,25 @@ html.Div([
     [State('viewport-store', 'data'),
      State('filter-store', 'data')],
 )
-#Haritayı oluşturma
 def update_maps(option_slctd, greenButton_clicks, yellowButton_clicks, orangeButton_clicks, redButton_clicks, vp, filter_data):
-    width = (vp or {}).get('width', 1300)
-    height = (vp or {}).get('height', 800)
+    width, height = parse_viewport(vp)
     isFiltered = (filter_data or {}).get('is_filtered', 0)
 
     ctx = dash.callback_context
-    # if not ctx.triggered:
-    #     raise dash.exceptions.PreventUpdate
-        
-    
     filtered_df_air = filter_total(df_air, year=option_slctd, dim1='Total', dim1_y=None)
-    filtered_df_air_copy = filtered_df_air
-
     filteredmerged_df = filter_total(merged_df, year=option_slctd)
-    
-    #Choropleth Haritası Renk Skalası
-    new_color_scale = [
-        (0, '#b3eb73'),
-        (0.33, '#fbed71'),
-        (0.45, '#efb35d'),
-        (1, '#e86c75')     
-    ]    
-    
-    #Scatter Haritası Renk Skalası
-    new2_color_scale = [
-        (0, 'red'),   
-        (0.5, 'red'), 
-        (1, 'red')  
-    ]
-    
+    new_color_scale = _DEFAULT_SCALE
+
     prop_id = ctx.triggered[0]['prop_id']
-    if prop_id == 'yesilbuton.n_clicks':
-        if isFiltered != 1:
-            filtered_df_air = filtered_df_air[filtered_df_air["FactValueNumeric"] <= 18]
-            new_color_scale = [
-                (0, '#b3eb73'),
-                (1, '#b3eb73')     
-            ]  
-            isFiltered = 1
+    if prop_id in _FILTER_CONFIG:
+        flag, single_scale, mask_fn = _FILTER_CONFIG[prop_id]
+        if isFiltered != flag:
+            filtered_df_air = mask_fn(filtered_df_air)
+            new_color_scale = single_scale
+            isFiltered = flag
         else:
-            filtered_df_air = filtered_df_air_copy
             isFiltered = 0
-            new_color_scale = [
-                (0, '#b3eb73'),
-                (0.33, '#fbed71'),
-                (0.66, '#efb35d'),
-                (1, '#e86c75')     
-            ] 
-    elif prop_id == 'sarıbuton.n_clicks':
-        if isFiltered != 2:
-            filtered_df_air = filtered_df_air[(filtered_df_air["FactValueNumeric"] > 18) & (filtered_df_air["FactValueNumeric"] <= 31)]
-            isFiltered = 2
-            new_color_scale = [
-                (0, '#fbed71'),
-                (1, '#fbed71')     
-            ] 
-        else:
-            filtered_df_air = filtered_df_air_copy
-            isFiltered = 0
-            new_color_scale = [
-                (0, '#b3eb73'),
-                (0.33, '#fbed71'),
-                (0.66, '#efb35d'),
-                (1, '#e86c75')     
-            ] 
-    elif prop_id == 'turuncubutton.n_clicks':
-        if isFiltered != 3:
-           filtered_df_air = filtered_df_air[(filtered_df_air["FactValueNumeric"] > 31) & (filtered_df_air["FactValueNumeric"] <= 48)]
-           isFiltered = 3
-           new_color_scale = [
-                (0, '#efb35d'),
-                (1, '#efb35d')     
-            ] 
-        else:
-            filtered_df_air = filtered_df_air_copy
-            isFiltered = 0
-            new_color_scale = [
-                (0, '#b3eb73'),
-                (0.33, '#fbed71'),
-                (0.66, '#efb35d'),
-                (1, '#e86c75')     
-            ] 
-    elif prop_id == 'kırmızıbuton.n_clicks':
-        if isFiltered != 4:
-            filtered_df_air = filtered_df_air[filtered_df_air["FactValueNumeric"] > 48]
-            isFiltered = 4
-            new_color_scale = [
-                (0, '#e86c75'),
-                (1, '#e86c75')     
-            ] 
-        else:
-            filtered_df_air = filtered_df_air_copy
-            isFiltered = 0
-            new_color_scale = [
-                (0, '#b3eb73'),
-                (0.33, '#fbed71'),
-                (0.66, '#efb35d'),
-                (1, '#e86c75')     
-            ] 
+            # new_color_scale zaten _DEFAULT_SCALE olarak ayarlı
     
     #Figure Oluşturma
     fig = go.Figure()
@@ -648,7 +573,11 @@ def update_maps(option_slctd, greenButton_clicks, yellowButton_clicks, orangeBut
     )
 
 
-    return fig, {'is_filtered': isFiltered}
+    # Slider drag'de isFiltered değişmediyse store'u gereksiz güncelleme
+    new_filter_data = {'is_filtered': isFiltered}
+    if (filter_data or {}).get('is_filtered', 0) == isFiltered:
+        return fig, dash.no_update
+    return fig, new_filter_data
 
 
 
@@ -672,17 +601,15 @@ def update_maps(option_slctd, greenButton_clicks, yellowButton_clicks, orangeBut
      State('panel-store', 'data')],
 )
 def display_click_data(clickData, n_clicks, option_slctd, vp, panel_data):
-    width = (vp or {}).get('width', 1300)
-    height = (vp or {}).get('height', 800)
+    width, height = parse_viewport(vp)
     is_hidden = (panel_data or {}).get('is_hidden', 1)
 
     _empty = {'data': []}
     _hide  = {'display': 'none'}
+    _reset = (_hide, _hide, "", "", _empty, _empty, _empty, _empty, _empty, _empty, _empty, {'is_hidden': 1})
 
     if n_clicks and is_hidden == 0:
-        return (_hide, _hide, "", "",
-                _empty, _empty, _empty, _empty, _empty, _empty, _empty,
-                {'is_hidden': 1})
+        return _reset
 
     if clickData is not None:
         clicked_location = clickData['points'][0]['location']
@@ -707,7 +634,7 @@ def display_click_data(clickData, n_clicks, option_slctd, vp, panel_data):
         style  = {'position': 'fixed', 'top': 0, 'right': 0, 'margin-top': '6.25%', 'margin-right': '5%', 'margin-bottom': '6.25%', 'margin-left': '25%', 'width': '70.5%', 'height': '75%', 'background-color': 'rgb(255,255,255,0.95)', 'z-index': '1000', 'display': 'inline-block', 'border-radius': '15px', 'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)', 'border': '1px solid rgb(135,135,135)'}
         style2 = {'display': 'inline-block', 'background-color': cloud_bg, 'width': '18%', 'height': '75%', 'position': 'fixed', 'margin-top': '5.75%', 'margin-bottom': '6.25%', 'margin-left': '5%', 'border-radius': '15px', 'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)', 'border': '1px solid rgb(135,135,135)'}
 
-        # Grafik çağrıları — orijinal Output sırası korundu (cizgi/cizgikutu pozisyon bilinçli)
+        # Output sırası: histogram, cizgikutu→Output('cizgi'), cizgi→Output('cizgikutu') — orijinal tab düzeni
         return (
             style, style2, cloud_img, text,
             _histogram_chart.figure(option_slctd, clicked_location, width=width, height=height, country_name=country_name_tr),
@@ -720,9 +647,7 @@ def display_click_data(clickData, n_clicks, option_slctd, vp, panel_data):
             {'is_hidden': 0},
         )
 
-    return (_hide, _hide, "", "",
-            _empty, _empty, _empty, _empty, _empty, _empty, _empty,
-            {'is_hidden': 1})
+    return _reset
 
 
 #### radar callback
@@ -737,8 +662,7 @@ def display_click_data(clickData, n_clicks, option_slctd, vp, panel_data):
      State('hover-store', 'data')],
 )
 def display_hover_data(hoverData, option_slctd, vp, hover_data):
-    width = (vp or {}).get('width', 1300)
-    height = (vp or {}).get('height', 800)
+    width, height = parse_viewport(vp)
     last_iso3 = (hover_data or {}).get('last_iso3', '')
 
     if hoverData is None:
@@ -746,7 +670,7 @@ def display_hover_data(hoverData, option_slctd, vp, hover_data):
 
     location = hoverData['points'][0]['location']
     if location == last_iso3:
-        return {'display': 'none'}, {'data': []}, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
 
     fig_dict = _radar_chart.figure(location, option_slctd, width=width, height=height)
 
@@ -800,8 +724,7 @@ def display_hover_data(hoverData, option_slctd, vp, hover_data):
     prevent_initial_call=True
 )
 def toggle_info_div(close_clicks, close_clicks2, info_clicks, info_clicks2, vp):
-    width  = (vp or {}).get('width',  1300)
-    height = (vp or {}).get('height', 800)
+    width, height = parse_viewport(vp)
 
     ctx = dash.callback_context
     if not ctx.triggered:
