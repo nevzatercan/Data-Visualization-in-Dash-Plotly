@@ -33,7 +33,7 @@ def figure(
     fact_values = filter_total(merged, year=year, country=iso)["FactValueNumeric"]
 
     plot_bgcolor = "rgba(0,0,0,0)"
-    quadrant_colors = [plot_bgcolor, "#d3382e", "#f2a529", "#eff229", "#85e043"]
+    quadrant_colors = [plot_bgcolor, "#f87171", "#fb923c", "#facc15", "#4ade80"]
     quadrant_text = ["", "<b>Çok yüksek</b>", "<b>Yüksek</b>", "<b>Orta</b>", "<b>Düşük</b>"]
     n_quadrants = len(quadrant_colors) - 1
 

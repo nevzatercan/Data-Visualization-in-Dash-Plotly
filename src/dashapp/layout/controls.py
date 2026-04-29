@@ -13,10 +13,10 @@ from dash_iconify import DashIconify
 
 # Filtre segmentleri — (id, hex-renk, tooltip-etiket)
 _FILTER_SEGMENTS = [
-    ("yesilbuton",    "#78c850", "İyi  ≤ 18 μg/m³"),
-    ("sarıbuton",     "#e8e840", "Orta  ≤ 31 μg/m³"),
-    ("turuncubutton", "#f0941c", "Kötü  ≤ 48 μg/m³"),
-    ("kırmızıbuton",  "#d43030", "Tehlikeli  > 48 μg/m³"),
+    ("yesilbuton",    "#22c55e", "İyi  ≤ 18 μg/m³"),
+    ("sarıbuton",     "#eab308", "Orta  ≤ 31 μg/m³"),
+    ("turuncubutton", "#f97316", "Kötü  ≤ 48 μg/m³"),
+    ("kırmızıbuton",  "#ef4444", "Tehlikeli  > 48 μg/m³"),
 ]
 
 # Köşe yarıçapları — sol uç / orta / sağ uç
@@ -34,13 +34,13 @@ def make_toolbar() -> html.Div:
                     [
                         dmc.Tooltip(
                             dmc.ActionIcon(
-                                DashIconify(icon="lucide:globe", width=20, color="rgba(255,255,255,0.85)"),
+                                DashIconify(icon="lucide:globe", width=20, color="rgba(56,189,248,0.85)"),
                                 id="info_circle1",
                                 size=42,
                                 radius="xl",
                                 variant="subtle",
                                 className="info-btn",
-                                style={"border": "1px solid rgba(255,255,255,0.15)"},
+                                style={"border": "1px solid rgba(56,130,246,0.22)"},
                             ),
                             label="Bölgesel PM2.5 haritası",
                             position="top",
@@ -48,13 +48,13 @@ def make_toolbar() -> html.Div:
                         ),
                         dmc.Tooltip(
                             dmc.ActionIcon(
-                                DashIconify(icon="lucide:table-2", width=20, color="rgba(255,255,255,0.85)"),
+                                DashIconify(icon="lucide:table-2", width=20, color="rgba(56,189,248,0.85)"),
                                 id="info_circle2",
                                 size=42,
                                 radius="xl",
                                 variant="subtle",
                                 className="info-btn",
-                                style={"border": "1px solid rgba(255,255,255,0.15)"},
+                                style={"border": "1px solid rgba(56,130,246,0.22)"},
                             ),
                             label="Veri tablosu",
                             position="top",
@@ -72,7 +72,7 @@ def make_toolbar() -> html.Div:
                 # ── Dikey ayraç ──────────────────────────────────────────────
                 html.Div(style={
                     "width": "1px", "height": "40px",
-                    "background": "rgba(255,255,255,0.12)",
+                    "background": "rgba(56, 130, 246, 0.15)",
                     "flexShrink": 0,
                 }),
 
@@ -99,7 +99,7 @@ def make_toolbar() -> html.Div:
                 # ── Dikey ayraç ──────────────────────────────────────────────
                 html.Div(style={
                     "width": "1px", "height": "40px",
-                    "background": "rgba(255,255,255,0.12)",
+                    "background": "rgba(56, 130, 246, 0.15)",
                     "flexShrink": 0,
                 }),
 
@@ -138,7 +138,7 @@ def make_toolbar() -> html.Div:
                         ),
                         # Eşik değerleri
                         html.Div(
-                            [html.Span(lbl, style={"flex": 1, "textAlign": "center", "color": "rgba(255,255,255,0.45)", "fontSize": "9px"})
+                            [html.Span(lbl, style={"flex": 1, "textAlign": "center", "color": "rgba(148, 163, 184, 0.55)", "fontSize": "9px"})
                              for lbl in ("≤18", "≤31", "≤48", ">48")],
                             style={"display": "flex", "marginTop": "4px"},
                         ),
@@ -151,16 +151,17 @@ def make_toolbar() -> html.Div:
                 "display": "flex",
                 "alignItems": "center",
                 "gap": "20px",
-                "background": "rgba(13, 17, 30, 0.72)",
-                "backdropFilter": "blur(28px) saturate(1.5)",
-                "WebkitBackdropFilter": "blur(28px) saturate(1.5)",
-                "border": "1px solid rgba(255, 255, 255, 0.10)",
+                "background": "rgba(10, 18, 36, 0.90)",
+                "backdropFilter": "blur(32px) saturate(1.7)",
+                "WebkitBackdropFilter": "blur(32px) saturate(1.7)",
+                "border": "1px solid rgba(56, 130, 246, 0.18)",
                 "borderRadius": "20px",
                 "padding": "14px 22px 18px",
                 "boxShadow": (
-                    "0 8px 32px rgba(0,0,0,0.50), "
-                    "0 2px 8px rgba(0,0,0,0.30), "
-                    "inset 0 1px 0 rgba(255,255,255,0.08)"
+                    "0 8px 40px rgba(0,0,0,0.55), "
+                    "0 2px 8px rgba(0,0,0,0.35), "
+                    "inset 0 1px 0 rgba(255,255,255,0.05), "
+                    "inset 0 0 0 1px rgba(0,0,0,0.30)"
                 ),
             },
         ),

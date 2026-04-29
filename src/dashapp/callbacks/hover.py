@@ -57,8 +57,18 @@ def register(app: dash.Dash) -> None:
             "z-index": 9999,
         }
         style = (
-            {**base, "background-color": "transparent", "width": "20%", "height": "250px"}
+            {**base,
+             "background": "rgba(10, 18, 36, 0.90)",
+             "backdrop-filter": "blur(28px) saturate(1.6)",
+             "-webkit-backdrop-filter": "blur(28px) saturate(1.6)",
+             "border": "1px solid rgba(56, 130, 246, 0.18)",
+             "border-radius": "14px",
+             "box-shadow": "0 8px 32px rgba(0,0,0,0.50)",
+             "width": "20%", "height": "250px"}
             if has_data
-            else {**base, "border": "1px solid black", "background-color": "white"}
+            else {**base,
+                  "background": "rgba(10, 18, 36, 0.88)",
+                  "border": "1px solid rgba(56, 130, 246, 0.18)",
+                  "border-radius": "14px"}
         )
         return style, fig_dict, {"last_iso3": location}

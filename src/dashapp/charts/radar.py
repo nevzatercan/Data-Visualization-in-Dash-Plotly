@@ -79,13 +79,15 @@ def figure(
     fig = go.Figure()
     fig.add_trace(go.Barpolar(
         r=radar_world.tolist(), theta=_CATEGORIES, name="Dünya Ortalaması",
-        marker_color=["#ffa600"] * 6, marker_line_color="white",
-        marker_line_width=0.2, opacity=0.7, width=0.97, base=0, thetaunit="radians",
+        marker_color=["rgba(251,191,36,0.75)"] * 6,
+        marker_line_color="rgba(255,255,255,0.10)",
+        marker_line_width=0.5, opacity=0.80, width=0.97, base=0, thetaunit="radians",
     ))
     fig.add_trace(go.Barpolar(
         r=country_vals.tolist(), theta=_CATEGORIES, name="Seçilen Ülke Ortalaması",
-        marker_color=["#bc5090"] * 6, marker_line_color="white",
-        marker_line_width=0.2, opacity=0.7, width=0.97, base=0, thetaunit="radians",
+        marker_color=["rgba(56,189,248,0.80)"] * 6,
+        marker_line_color="rgba(255,255,255,0.10)",
+        marker_line_width=0.5, opacity=0.80, width=0.97, base=0, thetaunit="radians",
     ))
     fig.update_layout(
         polar=dict(

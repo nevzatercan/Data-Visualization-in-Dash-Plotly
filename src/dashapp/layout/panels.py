@@ -52,7 +52,7 @@ def make_side_panel() -> html.Div:
                 style={
                     "fontSize": "12px",
                     "textAlign": "center",
-                    "color": "rgba(255,255,255,0.75)",
+                    "color": "rgba(148, 163, 184, 0.85)",
                     "fontWeight": "500",
                     "lineHeight": "1.5",
                     "padding": "0 14px",
@@ -63,7 +63,7 @@ def make_side_panel() -> html.Div:
             # Ayraç
             html.Div(style={
                 "height": "1px",
-                "background": "rgba(255,255,255,0.08)",
+                "background": "rgba(56, 130, 246, 0.14)",
                 "margin": "14px 16px",
             }),
 
@@ -77,7 +77,7 @@ def make_side_panel() -> html.Div:
                     "letterSpacing": "1px",
                     "textTransform": "uppercase",
                     "textAlign": "center",
-                    "color": "rgba(255,255,255,0.40)",
+                    "color": "rgba(100, 116, 139, 0.70)",
                     "marginBottom": "0",
                 },
             ),
@@ -100,7 +100,7 @@ def make_side_panel() -> html.Div:
                     ),
                     html.Span(
                         "Tüm yıllar ort.",
-                        style={"fontSize": "10px", "color": "rgba(255,255,255,0.45)", "marginRight": "14px"},
+                        style={"fontSize": "10px", "color": "rgba(148, 163, 184, 0.60)", "marginRight": "14px"},
                     ),
                     html.Img(
                         src="assets/img/çizgi2.png",
@@ -108,7 +108,7 @@ def make_side_panel() -> html.Div:
                     ),
                     html.Span(
                         "Son yıl",
-                        style={"fontSize": "10px", "color": "rgba(255,255,255,0.45)"},
+                        style={"fontSize": "10px", "color": "rgba(148, 163, 184, 0.60)"},
                     ),
                 ],
                 style={
@@ -230,6 +230,6 @@ def _cell(radius: str = "0") -> dict:
     return {
         "borderRadius": radius,
         "overflow": "hidden",
-        "background": "rgba(255,255,255,0.03)",
-        "border": "1px solid rgba(255,255,255,0.07)",
+        "background": "rgba(56, 130, 246, 0.04)",
+        "border": "1px solid rgba(56, 130, 246, 0.10)",
     }
