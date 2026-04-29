@@ -9,6 +9,10 @@ import dashapp.charts.sunburst as _sunburst_chart
 from dashapp.layout.stores import parse_viewport
 
 
+# modal-info1 kapalı, modal-info2 kapalı — her iki close butonu için ortak dönüş değeri
+_closed = (False, "", {"data": []}, {"data": []}, False)
+
+
 def register(app: dash.Dash) -> None:
 
     @app.callback(
@@ -31,7 +35,6 @@ def register(app: dash.Dash) -> None:
             raise dash.exceptions.PreventUpdate
 
         prop_id = ctx.triggered[0]["prop_id"]
-        _closed = (False, "", {"data": []}, {"data": []}, False)
 
         if prop_id in ("closeButton2.n_clicks", "closeButton3.n_clicks"):
             return _closed
@@ -44,5 +47,6 @@ def register(app: dash.Dash) -> None:
                 False,
             )
         if prop_id == "info_circle2.n_clicks":
-            return False, "", {"data": []}, {"data": []}, True
+            # modal-info1'i kapat, modal-info2'yi aç
+            return (*_closed[:4], True)
         raise dash.exceptions.PreventUpdate

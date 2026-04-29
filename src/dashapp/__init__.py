@@ -15,6 +15,9 @@ from dashapp.layout.panels import make_chart_panel, make_hover_panel, make_side_
 from dashapp.layout.stores import make_stores
 from dashapp.theme import GRAPH_CONFIG
 
+# scrollZoom devre dışı — harita yanlışlıkla zoom'lanmasın
+_HARITA_CONFIG: dict = {**GRAPH_CONFIG, "scrollZoom": False}
+
 
 def create_app() -> dash.Dash:
     """Dash uygulamasını oluştur, layout'u kur, callback'leri kaydet ve döndür."""
@@ -34,7 +37,7 @@ def create_app() -> dash.Dash:
                 dcc.Graph(
                     id="Harita",
                     figure={},
-                    config={**GRAPH_CONFIG, "scrollZoom": False},
+                    config=_HARITA_CONFIG,
                     clear_on_unhover=True,
                 ),
                 style={

@@ -1,4 +1,4 @@
-"""Harita callback'i — yıl/filtre değişince choropleth + scatter yeniden çizilir."""
+"""Harita callback'i."""
 from __future__ import annotations
 
 import dash
@@ -7,15 +7,15 @@ from dash import Input, Output, State
 
 from dashapp.data_loader import load_air, load_merged
 from dashapp.layout.stores import parse_viewport
-from dashapp.theme import DEFAULT_SCALE
+from dashapp.theme import DEFAULT_SCALE, THRESHOLD_COLORS
 from dashapp.transforms import filter_total
 
 # Filtre buton konfigürasyonu: prop_id → (flag, tek-renkli-skala, filtre-fn)
 _FILTER_CONFIG = {
-    "yesilbuton.n_clicks":    (1, [(0, "#b3eb73"), (1, "#b3eb73")], lambda df: df[df["FactValueNumeric"] <= 18]),
-    "sarıbuton.n_clicks":     (2, [(0, "#fbed71"), (1, "#fbed71")], lambda df: df[(df["FactValueNumeric"] > 18) & (df["FactValueNumeric"] <= 31)]),
-    "turuncubutton.n_clicks": (3, [(0, "#efb35d"), (1, "#efb35d")], lambda df: df[(df["FactValueNumeric"] > 31) & (df["FactValueNumeric"] <= 48)]),
-    "kırmızıbuton.n_clicks":  (4, [(0, "#e86c75"), (1, "#e86c75")], lambda df: df[df["FactValueNumeric"] > 48]),
+    "yesilbuton.n_clicks":    (1, [(0, THRESHOLD_COLORS["green"]),  (1, THRESHOLD_COLORS["green"])],  lambda df: df[df["FactValueNumeric"] <= 18]),
+    "sarıbuton.n_clicks":     (2, [(0, THRESHOLD_COLORS["yellow"]), (1, THRESHOLD_COLORS["yellow"])], lambda df: df[(df["FactValueNumeric"] > 18) & (df["FactValueNumeric"] <= 31)]),
+    "turuncubutton.n_clicks": (3, [(0, THRESHOLD_COLORS["orange"]), (1, THRESHOLD_COLORS["orange"])], lambda df: df[(df["FactValueNumeric"] > 31) & (df["FactValueNumeric"] <= 48)]),
+    "kırmızıbuton.n_clicks":  (4, [(0, THRESHOLD_COLORS["red"]),    (1, THRESHOLD_COLORS["red"])],    lambda df: df[df["FactValueNumeric"] > 48]),
 }
 
 

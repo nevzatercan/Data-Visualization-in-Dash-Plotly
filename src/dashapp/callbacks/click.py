@@ -38,12 +38,17 @@ _SIDE_PANEL_BASE_STYLE: dict = {
 }
 
 
+_empty = {"data": []}
+_hide = {"display": "none"}
+_reset = (_hide, _hide, "", "", _empty, _empty, _empty, _empty, _empty, _empty, _empty, {"is_hidden": 1})
+
+
 def register(app: dash.Dash) -> None:
     merged_df = load_merged()
-
-    _empty = {"data": []}
-    _hide = {"display": "none"}
-    _reset = (_hide, _hide, "", "", _empty, _empty, _empty, _empty, _empty, _empty, _empty, {"is_hidden": 1})
+    # Pre-built for O(1) country-name lookup on every map click
+    _country_name: dict[str, str] = dict(
+        zip(merged_df["Country Code"], merged_df["Country Name"])
+    )
 
     @app.callback(
         [Output("clicked_location", "style"),
@@ -75,10 +80,7 @@ def register(app: dash.Dash) -> None:
             return _reset
 
         clicked_location = clickData["points"][0]["location"]
-        country_name_en = safe_first(
-            merged_df[merged_df["Country Code"] == clicked_location]["Country Name"].drop_duplicates(),
-            default=clicked_location,
-        )
+        country_name_en = _country_name.get(clicked_location, clicked_location)
         country_name_tr = to_turkish(country_name_en)
         if " " in country_name_tr:
             country_name_tr = country_name_tr.split(" ")[0]
