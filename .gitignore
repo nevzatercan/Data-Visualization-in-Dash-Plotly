@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Veri (işlenmiş, türetilmiş — ham CSV'ler data/raw/'da kalır)
+data/processed/
+data/static/
+
+# Dash
+assets/.webassets-cache/
