@@ -91,7 +91,7 @@ def figure(
             y=float(country_numbers.median()) * 0.3 if not country_numbers.empty else 0,
             xanchor="center", yanchor="bottom",
             showarrow=False,
-            font=dict(color="black", size=14),
+            font=dict(color="rgba(255,255,255,0.75)", size=12),
         )],
     )
     return fig.to_dict()

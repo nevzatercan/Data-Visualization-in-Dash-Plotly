@@ -38,11 +38,12 @@ def make_side_panel() -> html.Div:
             ),
 
             # Gauge grafiği
-            dcc.Graph(
-                id="gösterge",
-                figure={},
-                config=_GC,
-                style={"height": "160px"},
+            dcc.Loading(
+                dcc.Graph(id="gösterge", figure={}, config=_GC, style={"height": "160px"}),
+                type="circle",
+                color="rgba(96,165,250,0.85)",
+                overlay_style={"visibility": "visible", "opacity": 0.45},
+                delay_show=150,
             ),
 
             # Ölüm sayısı metni
@@ -82,11 +83,12 @@ def make_side_panel() -> html.Div:
             ),
 
             # Mermi grafiği
-            dcc.Graph(
-                id="kursun",
-                figure={},
-                config=_GC,
-                style={"height": "160px"},
+            dcc.Loading(
+                dcc.Graph(id="kursun", figure={}, config=_GC, style={"height": "160px"}),
+                type="circle",
+                color="rgba(96,165,250,0.85)",
+                overlay_style={"visibility": "visible", "opacity": 0.45},
+                delay_show=150,
             ),
 
             # Çizgi açıklaması
@@ -141,49 +143,60 @@ def make_chart_panel() -> html.Div:
             html.Div("×", id="closeButton", className="close-x"),
 
             # ── Grafik grid ───────────────────────────────────────────────────
-            html.Div(
-                [
-                    # Histogram — sol üst
-                    html.Div(
-                        dcc.Graph(id="histogram", figure={}, config=_GC),
-                        style=_cell(radius="12px 0 0 0"),
-                    ),
-                    # Pasta — sağ sütun, 2 satıra yayılır
-                    html.Div(
-                        dcc.Graph(id="pasta", figure={}, config=_GC),
-                        style={**_cell(radius="0 12px 0 0"), "gridRow": "span 2"},
-                    ),
-                    # Balon — sol orta
-                    html.Div(
-                        dcc.Graph(id="balon", figure={}, config=_GC),
-                        style=_cell(),
-                    ),
-                    # 3. satır: tam genişlik, flex 50/50
-                    html.Div(
-                        [
-                            html.Div(
-                                dcc.Graph(id="cizgikutu", figure={}, config=_GC),
-                                style=_cell(radius="0 0 0 12px"),
-                            ),
-                            html.Div(
-                                dcc.Graph(id="cizgi", figure={}, config=_GC),
-                                style=_cell(radius="0 0 12px 0"),
-                            ),
-                        ],
-                        style={
-                            "gridColumn": "1 / -1",   # tüm sütunlara yay
-                            "display": "flex",
-                        },
-                    ),
-                ],
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "2fr 1fr",
-                    "gridTemplateRows": "1fr 1fr 1fr",
-                    "height": "100%",
-                    "overflow": "hidden",
-                    "borderRadius": "12px",
+            dcc.Loading(
+                html.Div(
+                    [
+                        # Histogram — sol üst
+                        html.Div(
+                            dcc.Graph(id="histogram", figure={}, config=_GC),
+                            style=_cell(radius="12px 0 0 0"),
+                        ),
+                        # Pasta — sağ sütun, 2 satıra yayılır
+                        html.Div(
+                            dcc.Graph(id="pasta", figure={}, config=_GC),
+                            style={**_cell(radius="0 12px 0 0"), "gridRow": "span 2"},
+                        ),
+                        # Balon — sol orta
+                        html.Div(
+                            dcc.Graph(id="balon", figure={}, config=_GC),
+                            style=_cell(),
+                        ),
+                        # 3. satır: tam genişlik, flex 50/50
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="cizgikutu", figure={}, config=_GC),
+                                    style=_cell(radius="0 0 0 12px"),
+                                ),
+                                html.Div(
+                                    dcc.Graph(id="cizgi", figure={}, config=_GC),
+                                    style=_cell(radius="0 0 12px 0"),
+                                ),
+                            ],
+                            style={
+                                "gridColumn": "1 / -1",
+                                "display": "flex",
+                            },
+                        ),
+                    ],
+                    style={
+                        "display": "grid",
+                        "gridTemplateColumns": "2fr 1fr",
+                        "gridTemplateRows": "1fr 1fr 1fr",
+                        "height": "100%",
+                        "overflow": "hidden",
+                        "borderRadius": "12px",
+                    },
+                ),
+                type="circle",
+                color="rgba(96,165,250,0.90)",
+                overlay_style={
+                    "visibility": "visible",
+                    "opacity": 0.5,
+                    "filter": "blur(1px)",
                 },
+                style={"height": "100%"},
+                delay_show=100,
             ),
         ],
         id="clicked_location",

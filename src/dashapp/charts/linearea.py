@@ -5,7 +5,7 @@ from __future__ import annotations
 import plotly.express as px
 
 from dashapp.data_loader import load_air
-from dashapp.theme import TRANSPARENT_LAYOUT
+from dashapp.theme import CHART_MARGIN, TRANSPARENT_LAYOUT
 
 _COLOR_PALETTE = {
     "Afrika": "#5E1675",
@@ -48,9 +48,10 @@ def figure(
         **TRANSPARENT_LAYOUT,
         width=width * 0.315,
         height=height * 0.4,
-        legend=dict(font=dict(size=8)),
+        legend=dict(font=dict(size=10), orientation="v", title_text=""),
         xaxis_tickangle=45,
         xaxis_title="Yıl",
         yaxis_title="PM2.5 Seviyesi",
+        margin=CHART_MARGIN,
     )
     return fig.to_dict()

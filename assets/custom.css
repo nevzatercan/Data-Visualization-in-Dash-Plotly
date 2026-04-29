@@ -133,3 +133,15 @@ body { overflow: hidden; background: #0d1117; }
 .js-plotly-plot .plotly {
   background: transparent !important;
 }
+
+/* ── dcc.Loading spinner dark-theme override ── */
+._dash-loading {
+  background: rgba(13, 17, 30, 0.25) !important;
+  border-radius: 12px;
+}
+._dash-loading-spinner {
+  border-top-color: rgba(96, 165, 250, 0.90) !important;
+  border-left-color: rgba(96, 165, 250, 0.30) !important;
+  border-right-color: rgba(96, 165, 250, 0.30) !important;
+  border-bottom-color: rgba(96, 165, 250, 0.30) !important;
+}

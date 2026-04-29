@@ -6,12 +6,10 @@ restcountries.com çağrısı yapılmaz.
 
 from __future__ import annotations
 
-import random
-
 import plotly.graph_objects as go
 
 from dashapp.data_loader import load_air, load_death
-from dashapp.theme import TRANSPARENT_LAYOUT
+from dashapp.theme import CHART_COLORS, TRANSPARENT_LAYOUT
 from dashapp.transforms import filter_total
 from dashapp.utils.borders import get_neighbors
 
@@ -87,42 +85,43 @@ def figure(
         x_pos.append(cumsum)
 
     y_pos = [5] * len(sorted_codes)
-    colors = [f"rgb{(random.randint(0,255), random.randint(0,255), random.randint(0,255))}" for _ in sorted_codes]
+    # Palette'ten döngüsel renk — random yerine tutarlı
+    colors = [CHART_COLORS[i % len(CHART_COLORS)] for i in range(len(sorted_codes))]
     texts = [f"{code}<br>{dl}" for code, dl in zip(sorted_codes, death_labels)]
 
     fig = go.Figure(data=go.Scatter(
         x=x_pos, y=y_pos,
         mode="markers+text",
-        marker=dict(size=sorted_sizes, color=colors, opacity=1),
+        marker=dict(size=sorted_sizes, color=colors, opacity=0.85),
         hoverinfo="text",
         textposition="top center",
         hovertext=texts,
         text=[f"%{t}" for t in texts],
-        textfont=dict(family="Arial", size=13, color="black"),
+        textfont=dict(size=11, color="rgba(255,255,255,0.85)"),
     ))
 
     display_name = country_name or iso
     fig.update_layout(
         **TRANSPARENT_LAYOUT,
         showlegend=False,
-        margin=dict(l=0, r=0, t=50, b=0),
-        xaxis=dict(showgrid=False, showticklabels=False),
-        yaxis=dict(showgrid=False, showticklabels=False),
+        margin=dict(l=0, r=0, t=48, b=0),
+        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+        yaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
         width=width * 0.47,
         height=height * 0.2475,
     )
     fig.add_annotation(
         xref="paper", yref="paper",
-        x=0.5, y=1.15,
-        text=f"{display_name} ve Komşu Ülkeleri",
+        x=0.5, y=1.12,
+        text=f"{display_name} ve Komşu Ülkeleri — PM2.5 Karşılaştırması",
         showarrow=False,
-        font=dict(family="Arial", size=24, color="black"),
+        font=dict(size=13, color="rgba(255,255,255,0.85)"),
     )
     fig.add_annotation(
         xref="paper", yref="paper",
-        x=0.95, y=0.05,
-        text="Baloncukların büyüklükleri havadaki pm2.5 seviyesini, üstündeki değerler ise ölüm oranını temsil eder.",
+        x=0.5, y=-0.08,
+        text="Boyut → PM2.5 seviyesi  ·  Üstteki % → ölüm oranı",
         showarrow=False,
-        font=dict(family="Arial", size=14, color="black"),
+        font=dict(size=9, color="rgba(255,255,255,0.40)"),
     )
     return fig.to_dict()

@@ -96,7 +96,7 @@ def figure(
         legend=dict(y=0.5),
         annotations=[
             dict(
-                text=f'<span style="color:black">{display_name} ve Dünyanın<br>yerleşim bölgelerine göre<br>pm2.5 ortalaması</span>',
+                text=f'<span style="color:rgba(255,255,255,0.85);font-weight:bold">{display_name} ve Dünyanın<br>yerleşim bölgelerine göre<br>pm2.5 ortalaması</span>',
                 x=1.05, y=0.95, font_size=16, showarrow=False,
             ),
             dict(text="<span>Şehir: en az 50.000 nüfuslu (km² başına >1.500 nüfuslu)</span>", x=1.05, y=0.09, font_size=9, showarrow=False),
