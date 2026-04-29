@@ -7,6 +7,7 @@ Created on Sat May  4 05:27:29 2024
 """
 
 import random
+from functools import lru_cache
 
 import dash
 import numpy as np
@@ -40,6 +41,7 @@ from dashapp.data_loader import (
     world_radar_means,
     world_residence_means,
 )
+from dashapp.transforms import colorchoose, filter_total, safe_first
 
 df_air = load_air()
 df_death = load_death()
@@ -164,14 +166,12 @@ if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int
 
 
 
-######ülke isimlerini türkçe alma
-
 translator = Translator()
 
-# Türkçe'ye çevirme fonksiyonu
+
+@lru_cache(maxsize=512)
 def translate_to_turkish(text):
-    translation = translator.translate(text, src='en', dest='tr')
-    return translation.text
+    return translator.translate(text, src='en', dest='tr').text
 
 ###
 
@@ -523,18 +523,10 @@ def update_maps(option_slctd,greenButton_clicks,yellowButton_clicks,orangeButton
     #     raise dash.exceptions.PreventUpdate
         
     
-    #Choropleth haritası için verileri ayarlamak
-    filtered_df_air = df_air.copy()
-    filtered_df_air = filtered_df_air[filtered_df_air["Dim1"] == 'Total']
-    filtered_df_air = filtered_df_air[filtered_df_air["Period"] == option_slctd]
-    filtered_df_air_copy = filtered_df_air.copy()
-    
-    #Scatter haritası için verileri ayarlamak
-    filteredmerged_df = merged_df.copy()
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Age Group'] == '[All]']
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Dim1_y'] == 'Total']
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Sex'] == 'All']
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Year'] == option_slctd]
+    filtered_df_air = filter_total(df_air, year=option_slctd, dim1='Total', dim1_y=None)
+    filtered_df_air_copy = filtered_df_air
+
+    filteredmerged_df = filter_total(merged_df, year=option_slctd)
     
     #Choropleth Haritası Renk Skalası
     new_color_scale = [
@@ -718,69 +710,48 @@ def display_click_data(clickData, n_clicks, option_slctd):
         return hide,hide,"","", {'data': []} ,{'data': []} ,{'data': []},{'data': []} ,{'data': []} ,{'data': []},{'data': []}      # Boş bir figür döndür
     if clickData is not None:
         isHidden = 0  # clicked_location görünür hale gelir
-        # Üzerine gelinen veriyi alma
-        clicked_location = clickData['points'][0]['location']  
-        #ülke ismi alma
-        country_name = merged_df[merged_df['Country Code']==clicked_location]["Country Name"].unique()[0]
-        country_name_english=country_name
+        clicked_location = clickData['points'][0]['location']
+        country_name = safe_first(
+            merged_df[merged_df['Country Code'] == clicked_location]['Country Name'].drop_duplicates(),
+            default=clicked_location,
+        )
+        country_name_english = country_name
         country_name = translate_to_turkish(country_name)
         if ' ' in country_name:
             country_name = country_name.split(' ')[0]
-        #color parametre
-        filtered_df_forcolor = merged_df.copy()
-        filtered_df_forcolor = merged_df[(merged_df['Country Code'] == clicked_location) & 
-                                                (merged_df['Year'] == option_slctd) & 
-                                                (merged_df['Age Group'] == '[All]') &
-                                                (merged_df['Sex'] == 'All') &
-                                                (merged_df['Dim1_y'] == 'Total')
-                                                ]
-        death_number = filtered_df_forcolor['Number']
-        text = ""
-        if death_number.values[0] != 0:
-            text = "Solunum yolu hastalıklarına(SYH) bağlı "+ str(option_slctd) +" yılı ölüm sayısı: " + str(int(death_number.values[0])) + " kişi"
+
+        filtered_df_forcolor = filter_total(merged_df, year=option_slctd, country=clicked_location)
+        death_value = safe_first(filtered_df_forcolor['Number'], default=0)
+        if death_value:
+            text = "Solunum yolu hastalıklarına(SYH) bağlı " + str(option_slctd) + " yılı ölüm sayısı: " + str(int(death_value)) + " kişi"
         else:
             text = "Bu ülkenin ölüm verileri bulunmamaktadır."
-        cloudcolor=colorchoose(filtered_df_forcolor["NormalizationForFactValueNumeric"])
-        # Bilgi penceresinde görüntülenecek içeriği hazırlama
+
+        norm_value = safe_first(filtered_df_forcolor['NormalizationForFactValueNumeric'])
+        cloud_img, cloud_bg = colorchoose(norm_value)
+
         style = {'position': 'fixed', 'top': 0, 'right': 0, 'margin-top': '6.25%', 'margin-right': '5%', 'margin-bottom': '6.25%', 'margin-left': '25%', 'width': '70.5%', 'height': '75%', 'background-color': 'rgb(255,255,255,0.95)', 'z-index': '1000', 'display': 'inline-block', 'border-radius': '15px','box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)','border': '1px solid rgb(135,135,135)'}
-        style2 = {'display':'inline-block', 'background-color': cloudcolor.values[0][1],'width': '18%','height': '75%','position': 'fixed','margin-top': '5.75%','margin-bottom': '6.25%','margin-left': '5%','border-radius': '15px','box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)','border': '1px solid rgb(135,135,135)'}
-        ### Oluşturduğumuz graphları callback kullanarak htmll kısmına gönderme.
+        style2 = {'display':'inline-block', 'background-color': cloud_bg,'width': '18%','height': '75%','position': 'fixed','margin-top': '5.75%','margin-bottom': '6.25%','margin-left': '5%','border-radius': '15px','box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)','border': '1px solid rgb(135,135,135)'}
         fig = histogram(option_slctd, clicked_location)
         fig2 = cizgikutu(clicked_location)
         fig3 = cizgi(clicked_location)
         fig4 = pasta(option_slctd, clicked_location)
         fig5 = balon(option_slctd, clicked_location)
-        göstergefig = gösterge(option_slctd,clicked_location)
+        göstergefig = gösterge(option_slctd, clicked_location)
         kursunfig = kursun(clicked_location)
-        return style, style2,cloudcolor.values[0][0],text, fig, fig2, fig3, fig4, fig5, göstergefig, kursunfig
+        return style, style2, cloud_img, text, fig, fig2, fig3, fig4, fig5, göstergefig, kursunfig
     else:
         return {'display': 'none'},{'display': 'none'},"","", {'data': []},{'data': []} ,{'data': []},{'data': []} ,{'data': []} ,{'data': []}  ,{'data': []}      # Eğer clickData yoksa, clicked_location gizlenir ve boş bir figür döndür
     
-def colorchoose(NormalizationForFactValueNumeric):
-    def assign_color(value):
-        if value < 0.13:
-            return 'assets/yesil.png','rgb(218, 255, 219, 1)'
-        elif 0.13 <= value < 0.44:
-            return 'assets/sari.png','rgb(255, 248, 189, 1)'
-        else:
-            return 'assets/kirmizi.png','rgb(255, 218, 202, 1)'
-
-    return NormalizationForFactValueNumeric.apply(assign_color)
-
-    
-
 ### histogram chart for sex and age
 
-def histogram(option_slctd,clickData):
-    global width, height  #grafiği ölçeklendirmek için tarayıcı yükseklik ve genişliği kullanılır
-    # Verilerimizi filtreleme
-    filteredmerged_df = sexallexitmerged_df.copy()
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Year'] == option_slctd]
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Country Code']==clickData]
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Dim1_y']=='Total']
-    filteredmerged_df = filteredmerged_df[~filteredmerged_df['Sex'].isin(['Unknown', 'All'])] 
-    filteredmerged_df.loc[filteredmerged_df['Age Group'] == '[0]', 'Age Group'] = '[0-49]'
-    
+def histogram(option_slctd, clickData):
+    global width, height
+    filteredmerged_df = filter_total(
+        sexallexitmerged_df, year=option_slctd, country=clickData, sex=None, age=None,
+    )
+    filteredmerged_df = filteredmerged_df[~filteredmerged_df['Sex'].isin(['Unknown', 'All'])]
+
     age_group_unique[9] = 'Genel'
      
     # Yaş ve Cinsiyete göre gruplama
@@ -836,40 +807,27 @@ def histogram(option_slctd,clickData):
         
 def cizgikutu(clickData):
     global width, height, country_name_english
-    filtered_df_fordeathcountry = merged_df.copy()
-    filtered_df_fordeathcountry = merged_df[(merged_df['Country Code'] == clickData) & 
-                                            (merged_df['Year'] >= 2010) & 
-                                            (merged_df['Age Group'] == '[All]') &
-                                            (merged_df['Sex'] == 'All') &
-                                            (merged_df['Dim1_y'] == 'Total')
-                                            ]
-
-    # Sort the DataFrame by year
-    filtered_df_fordeathcountry = filtered_df_fordeathcountry.sort_values(by='Year', ascending=True)
-
-    # Calculate cumulative sum of 'Number' column
+    filtered_df_fordeathcountry = filter_total(merged_df, country=clickData).copy()
+    filtered_df_fordeathcountry = filtered_df_fordeathcountry[
+        filtered_df_fordeathcountry['Year'] >= 2010
+    ].sort_values(by='Year', ascending=True)
     filtered_df_fordeathcountry['Cumulative Deaths'] = filtered_df_fordeathcountry['Number'].cumsum()
 
     country_numbers = df_covid[df_covid['Name'] == country_name_english]['Deaths - cumulative total']
     country_numbers = country_numbers.astype(int)
     if country_numbers.empty:
         country_numbers = pd.concat([pd.Series([0]), country_numbers], ignore_index=True)
+    covid_total = safe_first(country_numbers, default=0)
 
-
-    first_matching_year = None 
-
+    cum_by_year = filtered_df_fordeathcountry.set_index('Year')['Cumulative Deaths'].to_dict()
+    first_matching_year = None
     for year in range(2010, 2020):
-        # Belirli bir yılın verilerini al
-        filtered_year_data = filtered_df_fordeathcountry[filtered_df_fordeathcountry['Year'] == year]
-
-        # Eğer belirli bir yılın verisi yoksa veya sıfır ise, devam et
-        if filtered_year_data.empty:
+        cum_deaths = cum_by_year.get(year)
+        if cum_deaths is None:
             continue
-        
-        # Japan'ın toplam ölüm sayısını geçen ilk yılı bul
-        if filtered_year_data['Cumulative Deaths'].values[0] > country_numbers.values[0]:
-            first_matching_year = year-2010
-            break  # İlk geçen yılı bulduktan sonra döngüden çık
+        if cum_deaths > covid_total:
+            first_matching_year = year - 2010
+            break
 
     titletext = ""
     if first_matching_year == None:
@@ -892,8 +850,8 @@ def cizgikutu(clickData):
                              line=dict(color='blue')))  # Çizgi rengini de mavi olarak ayarlayalım
     
         # Kırmızı alanı ekleyelim
-    fig.add_trace(go.Scatter(x=filtered_df_fordeathcountry['Year'], 
-                             y=[country_numbers.values[0]] * len(filtered_df_fordeathcountry),
+    fig.add_trace(go.Scatter(x=filtered_df_fordeathcountry['Year'],
+                             y=[covid_total] * len(filtered_df_fordeathcountry),
                              mode='lines', 
                              fill='tozeroy', 
                              fillcolor='rgba(255, 0, 0, 0.7)',  # Kırmızı renk kullanalım
@@ -949,32 +907,27 @@ def cizgikutu(clickData):
 
 def cizgi(clickData):
     global width, height
-    #Verilerimizi grafiğe göre filtreleme
-    filtered_df_fordeathcountry = merged_df.copy()
-    filtered_df_fordeathcountry = merged_df[(merged_df['Country Code'] == clickData) & 
-                                            (merged_df['Year'] >= 2010) & 
-                                            (merged_df['Age Group'] == '[All]') &
-                                            (merged_df['Sex'] == 'All') &
-                                            (merged_df['Dim1_y'] == 'Total')
-                                            ]
-    #Yıla göre sıralı olarak düzenleme
-    filtered_df_fordeathcountry = filtered_df_fordeathcountry.sort_values(by='Year', ascending=True)
-    
-    #frame oluşturma
+    filtered_df_fordeathcountry = filter_total(merged_df, country=clickData)
+    filtered_df_fordeathcountry = filtered_df_fordeathcountry[
+        filtered_df_fordeathcountry['Year'] >= 2010
+    ].sort_values(by='Year', ascending=True)
+
+    deaths_by_year = filtered_df_fordeathcountry.set_index('Year')['NormalizationForPerDeath'].to_dict()
+    air_by_year = filtered_df_fordeathcountry.set_index('Year')['NormalizationForFactValueNumeric'].to_dict()
     years = []
     deaths = []
     air_quality = []
+    for year in range(2010, 2020):
+        if year not in deaths_by_year:
+            continue
+        years.append(year)
+        deaths.append(deaths_by_year[year])
+        air_quality.append(air_by_year[year])
 
+    if not years:
+        return go.Figure().to_dict()
 
-    # Belirli bir aralıktaki yılları tek tek atama
-    for i in range(2010, 2020):  # 2010'dan 2019'a kadar olan yılları kapsar
-        years.append(filtered_df_fordeathcountry[filtered_df_fordeathcountry['Year'] == i]['Year'].iloc[0])
-        deaths.append(filtered_df_fordeathcountry[filtered_df_fordeathcountry['Year'] == i]['NormalizationForPerDeath'].iloc[0])
-        air_quality.append(filtered_df_fordeathcountry[filtered_df_fordeathcountry['Year'] == i]['NormalizationForFactValueNumeric'].iloc[0])
-
-
-    #grafiği oluşturma 
-    fig = go.Figure(        
+    fig = go.Figure(
         frames=[go.Frame(
             data=[
                 go.Scatter(
@@ -1049,12 +1002,12 @@ def cizgi(clickData):
 
     return fig.to_dict()
 
-def pasta(option_slctd,clickData):
+def pasta(option_slctd, clickData):
     global width, height
-    #Verileri oluşturma ve seçme
-    filteredmerged_df = merged_df.copy()
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Year'] == option_slctd]
-    filteredmerged_df = filteredmerged_df[filteredmerged_df['Country Code']==clickData]
+    filteredmerged_df = filter_total(
+        merged_df, year=option_slctd, country=clickData,
+        sex=None, age=None, dim1_y=None,
+    )
     
     def get_flag_image(country_name):
         response = requests.get(f"https://commons.wikimedia.org/w/api.php?action=query&titles=File:Flag_of_{country_name}.svg&prop=imageinfo&iiprop=url&format=json")
@@ -1178,13 +1131,8 @@ def balon(option_slctd,clickData):
     global width, height
     #verilerimizi filtrelemeyi 2farklı df kulanarak oluşturma
     selected_country = clickData
-    filtered_merged_df = df_air.copy()
-    filtered_merged_df = filtered_merged_df[filtered_merged_df['Period'] == option_slctd]
-    filtered_merged_df = filtered_merged_df[filtered_merged_df['Dim1'] == 'Total']
-    filtereddeath_merged_df = df_death.copy()
-    filtereddeath_merged_df = filtereddeath_merged_df[filtereddeath_merged_df['Year'] == option_slctd]
-    filtereddeath_merged_df = filtereddeath_merged_df[filtereddeath_merged_df['Age Group'] == '[All]']
-    filtereddeath_merged_df = filtereddeath_merged_df[filtereddeath_merged_df['Sex'] == 'All']
+    filtered_merged_df = filter_total(df_air, year=option_slctd, dim1='Total', dim1_y=None)
+    filtereddeath_merged_df = filter_total(df_death, year=option_slctd, dim1_y=None)
     #komşu ülkeleri bulmak için apı defi hazırlamak
     def get_neighbors(country_code):
         url = f"https://restcountries.com/v3.1/alpha/{country_code}"
@@ -1334,24 +1282,18 @@ def balon(option_slctd,clickData):
 
     return fig.to_dict()
 
-def gösterge(option_slctd,clickData):
-
+def gösterge(option_slctd, clickData):
     global width, height
-    #Verileri oluşturma ve seçme
-    filteredmerged_df = merged_df.copy()
-    filteredmerged_df = filteredmerged_df[(filteredmerged_df['Country Code'] == clickData) & 
-                                          (filteredmerged_df['Age Group'] == '[All]') &
-                                          (filteredmerged_df['Sex'] == 'All') 
-                                          ]
-
-    fact_value = filteredmerged_df[(filteredmerged_df["Year"]==option_slctd) & (filteredmerged_df["Dim1_y"]=="Total")]['FactValueNumeric']
+    fact_value = filter_total(
+        merged_df, year=option_slctd, country=clickData,
+    )['FactValueNumeric']
 
     plot_bgcolor = 'rgba(0,0,0,0)'
-    quadrant_colors = [plot_bgcolor, "#d3382e", "#f2a529", "#eff229", "#85e043"] 
+    quadrant_colors = [plot_bgcolor, "#d3382e", "#f2a529", "#eff229", "#85e043"]
     quadrant_text = ["", "<b>Çok yüksek</b>", "<b>Yüksek</b>", "<b>Orta</b>", "<b>Düşük</b>"]
     n_quadrants = len(quadrant_colors) - 1
 
-    current_value = fact_value.values[0]
+    current_value = safe_first(fact_value, default=0)
     min_value = 0
     max_value = 70
     hand_length = np.sqrt(2) / 4
@@ -1405,20 +1347,25 @@ def gösterge(option_slctd,clickData):
     return fig.to_dict()
 
 def kursun(clickData):
-    
-    filtered_selected_df = merged_df.copy()
-    filtered_selected_df = filtered_selected_df[filtered_selected_df['Country Code']==clickData]
-    filtered_selected_df = filtered_selected_df[(filtered_selected_df['Age Group'] == '[All]') &(filtered_selected_df['Sex'] == 'All')]
-    max_year = filtered_selected_df['Year'].max()
-    max_year=int(max_year)
-    if max_year!=2010:
-        max_yeareksi=max_year-1
-    else:
-        max_yeareksi=max_year
-    
-    mean_valueFactValue = filtered_selected_df[(filtered_selected_df["Year"]>=2010) & (filtered_selected_df["Dim1_y"]=="Total")]['FactValueNumeric'].mean()
-    mean_valuePerc = filtered_selected_df[(filtered_selected_df["Year"]>=2010) & (filtered_selected_df["Dim1_y"]=="Total")]['Percentage of cause-specific deaths out of total deaths'].mean()
-    mean_valuePop = filtered_selected_df[(filtered_selected_df["Year"] >= 2010) & (filtered_selected_df["Year"] <= max_year) & (filtered_selected_df["Dim1_y"] == "Total")]['Death rate per 100 000 population'].mean()
+    filtered_selected_df = filter_total(merged_df, country=clickData)
+    if filtered_selected_df.empty:
+        return go.Figure().to_dict()
+
+    max_year = int(filtered_selected_df['Year'].max())
+    max_yeareksi = max_year - 1 if max_year > 2010 else max_year
+
+    in_range = filtered_selected_df[filtered_selected_df['Year'] >= 2010]
+    mean_valueFactValue = in_range['FactValueNumeric'].mean()
+    mean_valuePerc = in_range['Percentage of cause-specific deaths out of total deaths'].mean()
+    mean_valuePop = in_range[in_range['Year'] <= max_year]['Death rate per 100 000 population'].mean()
+
+    rows_by_year = {
+        year: filtered_selected_df[filtered_selected_df['Year'] == year]
+        for year in (max_year, max_yeareksi)
+    }
+
+    def value_for(year, col):
+        return safe_first(rows_by_year[year][col], default=0)
 
     fig = go.Figure()
     
@@ -1426,8 +1373,8 @@ def kursun(clickData):
     fig.add_trace(go.Indicator(
         mode="number+gauge+delta",
         number = {"suffix": "μm"},
-        value=filtered_selected_df[(filtered_selected_df["Year"]==max_year) & (filtered_selected_df["Dim1_y"]=="Total")]['FactValueNumeric'].values[0],
-        delta={"reference":filtered_selected_df[(filtered_selected_df["Year"]==max_yeareksi) & (filtered_selected_df["Dim1_y"]=="Total")]['FactValueNumeric'].values[0],
+        value=value_for(max_year, 'FactValueNumeric'),
+        delta={"reference": value_for(max_yeareksi, 'FactValueNumeric'),
                'decreasing': {
                    'color': "green",
                },
@@ -1457,8 +1404,8 @@ def kursun(clickData):
     fig.add_trace(go.Indicator(
         mode="number+gauge+delta",
         number = {"font":dict(size=14)},
-        value=filtered_selected_df[(filtered_selected_df["Year"]==max_year) & (filtered_selected_df["Dim1_y"]=="Total")]['Death rate per 100 000 population'].values[0],
-        delta={"reference":filtered_selected_df[(filtered_selected_df["Year"]==max_yeareksi) & (filtered_selected_df["Dim1_y"]=="Total")]['Death rate per 100 000 population'].values[0],
+        value=value_for(max_year, 'Death rate per 100 000 population'),
+        delta={"reference": value_for(max_yeareksi, 'Death rate per 100 000 population'),
                 'decreasing': {
                     'color': "green",
                 },
@@ -1487,9 +1434,9 @@ def kursun(clickData):
     
     fig.add_trace(go.Indicator(
         mode="number+gauge+delta",
-        value=filtered_selected_df[(filtered_selected_df["Year"]==max_year) & (filtered_selected_df["Dim1_y"]=="Total")]['Percentage of cause-specific deaths out of total deaths'].values[0],
+        value=value_for(max_year, 'Percentage of cause-specific deaths out of total deaths'),
         number = {"prefix": "%"},
-        delta={"reference": filtered_selected_df[(filtered_selected_df["Year"]==max_yeareksi) & (filtered_selected_df["Dim1_y"]=="Total")]['Percentage of cause-specific deaths out of total deaths'].values[0],
+        delta={"reference": value_for(max_yeareksi, 'Percentage of cause-specific deaths out of total deaths'),
                'decreasing': {
                    'color': "green",
                },
@@ -1576,27 +1523,17 @@ def display_hover_data(hoverData,option_slctd):
         location = hoverData['points'][0]['location']  
         if location != hovered_location:
             hovered_location = location
-            # Radar grafiğini güncellemek için seçilen ülkenin verilerini kullanma
-            filteredmerged_df = merged_df.copy()
-            filteredmerged_df = filteredmerged_df[filteredmerged_df['Age Group'] == '[All]']
-            filteredmerged_df = filteredmerged_df[filteredmerged_df['Dim1_y'] == 'Total']
-            filteredmerged_df = filteredmerged_df[filteredmerged_df['Sex'] == 'All']
-            filteredmerged_df = filteredmerged_df[filteredmerged_df['Year'] == option_slctd]
-            filtered_selected_df= filteredmerged_df[filteredmerged_df['Country Code']==location]
-            
-            #### ismi çok kötü olan ülkeleri hoverdan siliyoruz
-            if location=="MNG" or location=="IRN" or filtered_selected_df.empty:
+            filtered_selected_df = filter_total(merged_df, year=option_slctd, country=location)
+
+            if filtered_selected_df.empty:
                 RadarWorldForCountry = np.zeros(5, dtype=float)
             else:
-                
-                # Üzerinde bulunduğumuz ülkenin RadarWorldForCountry metrisini oluşturma
-                RadarWorldForCountry[0] = filtered_selected_df['NormalizationForNumber'].astype(float)
-                RadarWorldForCountry[1] = filtered_selected_df['NormalizationForPerDeath'].astype(float)
-                RadarWorldForCountry[2] = filtered_selected_df['NormalizationForAgeStandardizedDeathRate'].astype(float)
-                RadarWorldForCountry[3] = filtered_selected_df['NormalizationForFactValueNumericLow'].astype(float)
-                RadarWorldForCountry[4] = filtered_selected_df['NormalizationForFactValueNumericHigh'].astype(float)
-    
-                # Kategorilerimizi belirleme
+                RadarWorldForCountry[0] = safe_first(filtered_selected_df['NormalizationForNumber'], default=0)
+                RadarWorldForCountry[1] = safe_first(filtered_selected_df['NormalizationForPerDeath'], default=0)
+                RadarWorldForCountry[2] = safe_first(filtered_selected_df['NormalizationForAgeStandardizedDeathRate'], default=0)
+                RadarWorldForCountry[3] = safe_first(filtered_selected_df['NormalizationForFactValueNumericLow'], default=0)
+                RadarWorldForCountry[4] = safe_first(filtered_selected_df['NormalizationForFactValueNumericHigh'], default=0)
+
                 categories = ['Ölüm Sayısı','Yüzdelik <br> Ölüm Oranı','Yaşa Standardize <br> Edilmiş Oran', 'Max pm2.5 <br> seviyesi', 'Min pm2.5  <br> seviyesi']
         
            # Eğer verilerimiz yeterli değil ise,
