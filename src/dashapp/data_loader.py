@@ -180,6 +180,7 @@ def load_sex_age_breakdown() -> pd.DataFrame:
     return df
 
 
+@lru_cache(maxsize=1)
 def world_radar_means() -> np.ndarray:
     """5 metriğin dünya ortalaması (radar grafiği baseline'ı)."""
     df = load_merged()
@@ -192,6 +193,7 @@ def world_radar_means() -> np.ndarray:
     return radar
 
 
+@lru_cache(maxsize=1)
 def world_residence_means() -> dict[str, float]:
     """Yerleşim türüne göre dünya PM2.5 ortalaması (pasta grafiği için)."""
     df = load_merged()

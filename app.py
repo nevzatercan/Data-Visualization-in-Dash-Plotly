@@ -7,6 +7,7 @@ Created on Sat May  4 05:27:29 2024
 """
 
 import random
+from functools import lru_cache
 
 import dash
 import numpy as np
@@ -165,14 +166,12 @@ if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int
 
 
 
-######ülke isimlerini türkçe alma
-
 translator = Translator()
 
-# Türkçe'ye çevirme fonksiyonu
+
+@lru_cache(maxsize=512)
 def translate_to_turkish(text):
-    translation = translator.translate(text, src='en', dest='tr')
-    return translation.text
+    return translator.translate(text, src='en', dest='tr').text
 
 ###
 
@@ -820,10 +819,10 @@ def cizgikutu(clickData):
         country_numbers = pd.concat([pd.Series([0]), country_numbers], ignore_index=True)
     covid_total = safe_first(country_numbers, default=0)
 
+    cum_by_year = filtered_df_fordeathcountry.set_index('Year')['Cumulative Deaths'].to_dict()
     first_matching_year = None
     for year in range(2010, 2020):
-        filtered_year_data = filtered_df_fordeathcountry[filtered_df_fordeathcountry['Year'] == year]
-        cum_deaths = safe_first(filtered_year_data['Cumulative Deaths'])
+        cum_deaths = cum_by_year.get(year)
         if cum_deaths is None:
             continue
         if cum_deaths > covid_total:
@@ -913,16 +912,17 @@ def cizgi(clickData):
         filtered_df_fordeathcountry['Year'] >= 2010
     ].sort_values(by='Year', ascending=True)
 
+    deaths_by_year = filtered_df_fordeathcountry.set_index('Year')['NormalizationForPerDeath'].to_dict()
+    air_by_year = filtered_df_fordeathcountry.set_index('Year')['NormalizationForFactValueNumeric'].to_dict()
     years = []
     deaths = []
     air_quality = []
     for year in range(2010, 2020):
-        year_rows = filtered_df_fordeathcountry[filtered_df_fordeathcountry['Year'] == year]
-        if year_rows.empty:
+        if year not in deaths_by_year:
             continue
         years.append(year)
-        deaths.append(safe_first(year_rows['NormalizationForPerDeath'], default=0))
-        air_quality.append(safe_first(year_rows['NormalizationForFactValueNumeric'], default=0))
+        deaths.append(deaths_by_year[year])
+        air_quality.append(air_by_year[year])
 
     if not years:
         return go.Figure().to_dict()
@@ -1359,11 +1359,13 @@ def kursun(clickData):
     mean_valuePerc = in_range['Percentage of cause-specific deaths out of total deaths'].mean()
     mean_valuePop = in_range[in_range['Year'] <= max_year]['Death rate per 100 000 population'].mean()
 
+    rows_by_year = {
+        year: filtered_selected_df[filtered_selected_df['Year'] == year]
+        for year in (max_year, max_yeareksi)
+    }
+
     def value_for(year, col):
-        return safe_first(
-            filtered_selected_df[filtered_selected_df['Year'] == year][col],
-            default=0,
-        )
+        return safe_first(rows_by_year[year][col], default=0)
 
     fig = go.Figure()
     
