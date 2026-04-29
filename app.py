@@ -6,15 +6,8 @@ Created on Sat May  4 05:27:29 2024
 @author: nevzatercan
 """
 
-import random
-from functools import lru_cache
-
 import dash
-import numpy as np
-import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-import requests
 from dash import (
     ClientsideFunction,
     Dash,
@@ -25,44 +18,28 @@ from dash import (
     dcc,
     html,
 )
-from googletrans import Translator
 
 app = dash.Dash(__name__)
 
 app.config.suppress_callback_exceptions = True
 
 
-from dashapp.data_loader import (
-    load_air,
-    load_covid,
-    load_death,
-    load_merged,
-    load_sex_age_breakdown,
-    world_radar_means,
-    world_residence_means,
-)
+from dashapp.data_loader import load_air, load_merged
 from dashapp.transforms import colorchoose, filter_total, safe_first
+from dashapp.utils.translations import to_turkish
+import dashapp.charts.histogram as _histogram_chart
+import dashapp.charts.cizgikutu as _cizgikutu_chart
+import dashapp.charts.cizgi as _cizgi_chart
+import dashapp.charts.pasta as _pasta_chart
+import dashapp.charts.balon as _balon_chart
+import dashapp.charts.gosterge as _gosterge_chart
+import dashapp.charts.kursun as _kursun_chart
+import dashapp.charts.sunburst as _sunburst_chart
+import dashapp.charts.linearea as _linearea_chart
+import dashapp.charts.radar as _radar_chart
 
 df_air = load_air()
-df_death = load_death()
-df_covid = load_covid()
 merged_df = load_merged()
-sexallexitmerged_df = load_sex_age_breakdown()
-
-age_group_unique = sexallexitmerged_df['Age Group'].unique()
-age_group_unique = np.roll(age_group_unique, -1)
-age_sex_group_averages = sexallexitmerged_df.groupby(['Age Group', 'Sex'])['NormalizationForPerDeath'].mean()
-
-RadarWorld = world_radar_means()
-RadarWorldForCountry = np.zeros(5)
-
-_residence = world_residence_means()
-cities_meanworld = _residence['Cities']
-rural_meanworld = _residence['Rural']
-towns_meanworld = _residence['Towns']
-urban_meanworld = _residence['Urban']
-total_meanworld = _residence['Total']
-all_meansworld = [cities_meanworld, towns_meanworld, urban_meanworld, rural_meanworld]
 
 
 
@@ -165,13 +142,6 @@ if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int
 
 
 
-
-translator = Translator()
-
-
-@lru_cache(maxsize=512)
-def translate_to_turkish(text):
-    return translator.translate(text, src='en', dest='tr').text
 
 ###
 
@@ -716,7 +686,7 @@ def display_click_data(clickData, n_clicks, option_slctd):
             default=clicked_location,
         )
         country_name_english = country_name
-        country_name = translate_to_turkish(country_name)
+        country_name = to_turkish(country_name)
         if ' ' in country_name:
             country_name = country_name.split(' ')[0]
 
@@ -743,764 +713,61 @@ def display_click_data(clickData, n_clicks, option_slctd):
     else:
         return {'display': 'none'},{'display': 'none'},"","", {'data': []},{'data': []} ,{'data': []},{'data': []} ,{'data': []} ,{'data': []}  ,{'data': []}      # Eğer clickData yoksa, clicked_location gizlenir ve boş bir figür döndür
     
-### histogram chart for sex and age
+### Grafik fonksiyonları — charts paketine delege edildi
 
 def histogram(option_slctd, clickData):
-    global width, height
-    filteredmerged_df = filter_total(
-        sexallexitmerged_df, year=option_slctd, country=clickData, sex=None, age=None,
-    )
-    filteredmerged_df = filteredmerged_df[~filteredmerged_df['Sex'].isin(['Unknown', 'All'])]
-
-    age_group_unique[9] = 'Genel'
-     
-    # Yaş ve Cinsiyete göre gruplama
-    age_sex_group_averagesall = filteredmerged_df.groupby(['Age Group', 'Sex'])['NormalizationForPerDeath'].mean()
-    
-    # age_sex_group_averages serisini DataFrame'e dönüştürme
-    age_sex_group_averages_df = age_sex_group_averages.reset_index()
-    
-    # Cinsiyete göre gruplama
-    male_averages = age_sex_group_averages_df[age_sex_group_averages_df['Sex'] == 'Male']
-    female_averages = age_sex_group_averages_df[age_sex_group_averages_df['Sex'] == 'Female']
-    
-    # age_sex_group_averagesall serisini DataFrame'e dönüştürme
-    age_sex_group_averagesall_df = age_sex_group_averagesall.reset_index()
-    
-    # Cinsiyete göre gruplama
-    male_averages_all = age_sex_group_averagesall_df[age_sex_group_averagesall_df['Sex'] == 'Male']
-    female_averages_all = age_sex_group_averagesall_df[age_sex_group_averagesall_df['Sex'] == 'Female']
-    
-    # Değerleri listeye alma
-    male_averages_values = [float(value) for value in male_averages['NormalizationForPerDeath']]
-    female_averages_values = [float(value) for value in female_averages['NormalizationForPerDeath']]
-    male_averages_all_values = [float(value) for value in male_averages_all['NormalizationForPerDeath']]
-    female_averages_all_values = [float(value) for value in female_averages_all['NormalizationForPerDeath']]
-
-    # Figure oluşturma
-    fig = go.Figure()
-    #Traceler ile histogramlara kolonları ekleme veya bar oluşturma da diyebiliriz
-    fig.add_trace(go.Bar(x=age_group_unique, y=male_averages_all_values, name= country_name +' Erkek Ortalaması', marker=dict(color='rgba(60, 162, 229, 0.96)')))
-    fig.add_trace(go.Bar(x=age_group_unique, y=female_averages_all_values, name=country_name+ ' Kadın Ortalaması', marker=dict(color='rgba(234, 62, 62, 0.96)')))
-    fig.add_trace(go.Bar(x=age_group_unique, y=male_averages_values, name='Dünya Erkek Ortalaması', marker=dict(color='rgba(50, 136, 193, 0.96)')))
-    fig.add_trace(go.Bar(x=age_group_unique, y=female_averages_values, name='Dünya Kadın Ortalaması', marker=dict(color='rgba(193, 50, 50, 0.96)')))
-    
-    # Grafik düzenini ayarla
-    fig.update_layout(
-        title='Yaş Gruplarına Göre Cinsiyet Bazında ve Dünya Genelinde Ölüm Oranı', 
-        titlefont=dict(color='black'),
-        xaxis=dict(title='Yaş Grupları', tickfont=dict(color='black',size=10), titlefont=dict(color='black')),  # x ekseninin rengi siyah
-        yaxis=dict(title='Ölüm Oranı', tickfont=dict(color='black'),titlefont=dict(color='black')),  # y ekseninin rengi siyah
-        xaxis_tickangle=0, 
-        barmode='group',
-        width=width*0.46,
-        height=height*0.2475,
-        plot_bgcolor='rgba(0,0,0,0)',  # çubukların arka plan rengi
-        paper_bgcolor='rgba(0,0,0,0)',  # kağıt arka plan rengi
-        legend=dict(
-            font=dict(color='black')) ,
-        margin=dict(l=0, r=0, t=40, b=0),
-        
+    return _histogram_chart.figure(
+        option_slctd, clickData,
+        width=width, height=height,
+        country_name=country_name,
     )
 
-    return fig.to_dict()
-        
 def cizgikutu(clickData):
-    global width, height, country_name_english
-    filtered_df_fordeathcountry = filter_total(merged_df, country=clickData).copy()
-    filtered_df_fordeathcountry = filtered_df_fordeathcountry[
-        filtered_df_fordeathcountry['Year'] >= 2010
-    ].sort_values(by='Year', ascending=True)
-    filtered_df_fordeathcountry['Cumulative Deaths'] = filtered_df_fordeathcountry['Number'].cumsum()
-
-    country_numbers = df_covid[df_covid['Name'] == country_name_english]['Deaths - cumulative total']
-    country_numbers = country_numbers.astype(int)
-    if country_numbers.empty:
-        country_numbers = pd.concat([pd.Series([0]), country_numbers], ignore_index=True)
-    covid_total = safe_first(country_numbers, default=0)
-
-    cum_by_year = filtered_df_fordeathcountry.set_index('Year')['Cumulative Deaths'].to_dict()
-    first_matching_year = None
-    for year in range(2010, 2020):
-        cum_deaths = cum_by_year.get(year)
-        if cum_deaths is None:
-            continue
-        if cum_deaths > covid_total:
-            first_matching_year = year - 2010
-            break
-
-    titletext = ""
-    if first_matching_year == None:
-        titletext = "Toplam Covid ölümüne yetişemedi."
-    elif first_matching_year == 0:
-        titletext = "Toplam Covid ölümüne 1 yılda yetişti."
-    else:
-        titletext = "Toplam Covid ölümüne "+ str(first_matching_year) + " yılda yetişti."
-
-
-            # Plot the cumulative deaths
-    fig = go.Figure()
-    
-    # Mavi alanı ekleyelim
-    fig.add_trace(go.Scatter(x=filtered_df_fordeathcountry['Year'], 
-                             y=filtered_df_fordeathcountry['Cumulative Deaths'], 
-                             fill='tozeroy', 
-                             mode='lines',
-                             fillcolor='blue',  # Mavi renk kullanalım
-                             line=dict(color='blue')))  # Çizgi rengini de mavi olarak ayarlayalım
-    
-        # Kırmızı alanı ekleyelim
-    fig.add_trace(go.Scatter(x=filtered_df_fordeathcountry['Year'],
-                             y=[covid_total] * len(filtered_df_fordeathcountry),
-                             mode='lines', 
-                             fill='tozeroy', 
-                             fillcolor='rgba(255, 0, 0, 0.7)',  # Kırmızı renk kullanalım
-                             line=dict(color='rgba(255, 0, 0, 0.7)', width=0),  # Çizgi rengini ve kalınlığını ayarlayalım
-                             marker=dict(color='red', size=10), 
-                             showlegend=False))
-
-    
-    fig.update_layout(
-        xaxis_title='Yıl',
-        yaxis_title='Kümülatif Ölüm Sayısı',
-        xaxis_tickangle=-45,
-        xaxis_range=[filtered_df_fordeathcountry['Year'].min(), filtered_df_fordeathcountry['Year'].max()],
-        showlegend=False,
-        title_text = titletext,
-        width=width*0.35,
-        height=height*0.24,
-        margin=dict(l=0, r=15, t=25, b=10),
-        xaxis=dict(
-            showgrid=False,
-            linecolor='black',
-            linewidth=2.5,
-            tickfont=dict(color='black')  # x ekseninin yazılarını siyah renkte yap
-        ),
-        yaxis=dict(
-            showgrid=False,
-            linecolor='black',
-            linewidth=2.5,
-            tickfont=dict(color='black')  # y ekseninin yazılarını siyah renkte yap
-        ),
-        annotations=[
-            dict(
-                text="Covid 19 Kümülatif Ölüm Sayısı",
-                x=filtered_df_fordeathcountry['Year'].median(),  
-                y=country_numbers.median() * 0.3,
-                xanchor="center",
-                yanchor="bottom",
-                showarrow=False,
-                font=dict(
-                    color="black",  
-                    size=14  
-                )
-            )
-        ],
-    
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
+    return _cizgikutu_chart.figure(
+        clickData,
+        width=width, height=height,
+        country_name_english=country_name_english,
     )
-    
-    return fig.to_dict()
-
-
 
 def cizgi(clickData):
-    global width, height
-    filtered_df_fordeathcountry = filter_total(merged_df, country=clickData)
-    filtered_df_fordeathcountry = filtered_df_fordeathcountry[
-        filtered_df_fordeathcountry['Year'] >= 2010
-    ].sort_values(by='Year', ascending=True)
-
-    deaths_by_year = filtered_df_fordeathcountry.set_index('Year')['NormalizationForPerDeath'].to_dict()
-    air_by_year = filtered_df_fordeathcountry.set_index('Year')['NormalizationForFactValueNumeric'].to_dict()
-    years = []
-    deaths = []
-    air_quality = []
-    for year in range(2010, 2020):
-        if year not in deaths_by_year:
-            continue
-        years.append(year)
-        deaths.append(deaths_by_year[year])
-        air_quality.append(air_by_year[year])
-
-    if not years:
-        return go.Figure().to_dict()
-
-    fig = go.Figure(
-        frames=[go.Frame(
-            data=[
-                go.Scatter(
-                    x=years[:i+1],
-                    y=deaths[:i+1],
-                    mode='lines+markers',
-                    name='Ölüm Sayıları'
-                ),
-                go.Scatter(
-                    x=years[:i+1],
-                    y=air_quality[:i+1],
-                    mode='lines+markers',
-                    name='PM2.5 seviyesi'
-                )
-            ]
-        ) for i in range(len(years))])
-    # Ölüm sayıları scatter plotunu ekle
-    fig.add_trace(go.Scatter(x=[years[0]],
-                             y=[deaths[0]],
-                             mode='lines+markers', 
-                             name='Ölüm Oranı'))
-
-    # Hava kalitesi scatter plotunu ekle
-    fig.add_trace(go.Scatter(x=[years[0]],
-                             y=[air_quality[0]],
-                             mode='lines+markers', 
-                             name='PM2.5 seviyesi'))
-
-    # Layout ayarları
-    fig.update_layout(
-    xaxis_title= country_name +' için 2010 sonrası pm2.5 seviyesi ve ölüm oranı',
-    xaxis_title_font=dict(
-    color='black'),
-    yaxis_title='Normalize edilmiş veri',
-    yaxis_title_font=dict(
-        size=13,
-        color='black',
-        family='Arial'
-    ),
-    xaxis_tickangle=-45,
-    showlegend=True,
-    plot_bgcolor='rgba(0,0,0,0)',
-    paper_bgcolor='rgba(0,0,0,0)',
-    xaxis=dict(
-        showgrid=False,
-        linecolor='black',
-        linewidth=2.5,
-        tickfont=dict(color='black')  # x ekseninin yazılarını siyah renkte yap
-    ),
-    yaxis=dict(
-        showgrid=False,
-        linecolor='black',
-        linewidth=2.5,
-        tickfont=dict(color='black')  # y ekseninin yazılarını siyah renkte yap
-    ),
-    width=width*0.35,
-    height=height*0.24,
-    margin=dict(l=0, r=0, t=0, b=10),
-)
-    fig.update_layout(updatemenus=[{'buttons': [{'args': [None],
-                                                 'label': 'Play',
-                                                 'method': 'animate'},],
-                                    'direction': 'left',
-                                    'pad': {'r': 0, 't': 0},
-                                    'showactive': False,
-                                    'bordercolor': 'red' ,
-                                    'type': 'buttons',
-                                    'x': 1.35,
-                                    'xanchor': 'right',
-                                    'y': 0.6,
-                                    'yanchor': 'top'}])
-
-    return fig.to_dict()
+    return _cizgi_chart.figure(
+        clickData,
+        width=width, height=height,
+        country_name=country_name,
+    )
 
 def pasta(option_slctd, clickData):
-    global width, height
-    filteredmerged_df = filter_total(
-        merged_df, year=option_slctd, country=clickData,
-        sex=None, age=None, dim1_y=None,
-    )
-    
-    def get_flag_image(country_name):
-        response = requests.get(f"https://commons.wikimedia.org/w/api.php?action=query&titles=File:Flag_of_{country_name}.svg&prop=imageinfo&iiprop=url&format=json")
-        data = response.json()
-        pages = data["query"]["pages"]
-        if "-1" not in pages:
-            image_url = pages[list(pages.keys())[0]]["imageinfo"][0]["url"]
-            return image_url
-        else:
-            return None
-            
-    flag_image_url = get_flag_image(country_name_english)
-    
-    img_width = 0.22
-    img_height = 0.200
-    
-    #pie chartta kullanılacak veriler için verilerin ortalamasını oluşturma
-    labels = ['Şehir', 'Kasaba', 'Kentsel','Kırsal']
-    filteredmerged_df['FactValueNumeric'] = pd.to_numeric(filteredmerged_df['FactValueNumeric'], errors='coerce')
-    cities_mean = filteredmerged_df[(filteredmerged_df['Dim1_y'] == 'Cities') & (filteredmerged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-    rural_mean = filteredmerged_df[(filteredmerged_df['Dim1_y'] == 'Rural') & (filteredmerged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-    towns_mean = filteredmerged_df[(filteredmerged_df['Dim1_y'] == 'Towns') & (filteredmerged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-    urban_mean = filteredmerged_df[(filteredmerged_df['Dim1_y'] == 'Urban') & (filteredmerged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-
-    all_means = [cities_mean, towns_mean, urban_mean,rural_mean]
-    formatted_values = ['{:.2f}'.format(value) for value in all_meansworld]
-    formatted_values2 = ['{:.2f}'.format(value) for value in all_means]
-
-    colors = ['#ffd166', '#ef476f', '#26547c', '#06d6a0']
-    colors2 = ['#ffcc58cc', '#ec6564cc', '#3e80bfcc', '#a2d9cb']
-    #Grafiği oluşturma
-    # Dıştaki pasta grafiği
-    outer_pie = go.Pie(
-        labels=labels,
-        values=formatted_values2,
-        textinfo='value',
-        name='Outer Pie',
-        hole=0.2, # İçteki pastanın boyutunu ayarlar, 0'dan 1'e kadar bir değer
-        marker=dict(colors=colors,line=dict(width=7,color="white")),
-        domain={'x':[0.3,0.9], 'y':[0.1,0.9]},  # x değerlerini değiştirerek pasta grafiğini sağa kaydırın
-    )
-    
-    # İçteki pasta grafiği
-    inner_pie = go.Pie(
-        labels=labels,
-        values=formatted_values,
-        name='Inner Pie',
-        textinfo='value',
-        hole=0.8, # Daha küçük bir değer seçebilirsiniz
-        marker=dict(colors=colors2,line=dict(width=7,color="white")),
-        domain={'x':[0.2,1], 'y':[0,1]}  # x değerlerini değiştirerek pasta grafiğini sağa kaydırın
+    return _pasta_chart.figure(
+        option_slctd, clickData,
+        width=width, height=height,
+        country_name=country_name,
+        country_name_english=country_name_english,
     )
 
-    
-    
-    layout = go.Layout()
-    fig = go.Figure(data=[outer_pie, inner_pie], layout=layout)
-    
-    
-    fig.update_layout(
-        showlegend=True,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=0, r=0, t=0, b=0),
-        # Pie Chartın ortasına boşluk ekleme
-        annotations=[
-            dict(
-                text='<span style="color:black">' + str(country_name) + ' ve Dünyanın<br>yerleşim bölgelerine göre  <br>pm2.5 ortalaması</span> <br><span style="font-size:16; color:black">' ,
-                x=1.05, y=0.95,
-                font_size=16,
-                showarrow=False
-            ),
-            # Yeni metni ekleyin
-            dict(
-                text='<span style="text-align: left; display: inline-block;">Şehir: en az 50.000 nüfuslu (km2 başına >1.500 nüfuslu)</span>',
-                x=1.05, y=0.09,  # Yatay ve dikey konumunu ayarlayın
-                font_size=9,
-                showarrow=False
-            ),
-            dict(
-                text='<span style="text-align: left; display: inline-block;">Kentsel: en az 5.000 nüfuslu (km2 başına >300 nüfuslu)</span>',
-                x=1.03, y=0.06,  # Yatay ve dikey konumunu ayarlayın
-                font_size=9,
-                showarrow=False
-            ),
-            dict(
-                text='<span style="text-align: left; display: inline-block;">Kırsal: en az 1.000 nüfuslu (km2 başına <300 nüfuslu)</span>',
-                x=0.498, y=0.03,  # Yatay ve dikey konumunu ayarlayın
-                font_size=9,
-                showarrow=False
-            ),
-            dict(
-                text='<span style="text-align: left; display: inline-block;">Kasaba: en az 1.000 nüfuslu (km2 başına >300 nüfuslu)</span>',
-                x=1.03, y=0,  # Yatay ve dikey konumunu ayarlayın
-                font_size=9,
-                showarrow=False
-            )
-        ],
-        width=width * 0.23,
-        height=height * 0.495,
-        legend=dict(y=0.5), font=dict(color='black')
+def balon(option_slctd, clickData):
+    return _balon_chart.figure(
+        option_slctd, clickData,
+        width=width, height=height,
+        country_name=country_name,
     )
-
-    
-    fig.add_layout_image(
-        dict(
-            source=flag_image_url,
-            xref="paper", yref="paper",
-            x=0.74, y=0.455,
-            sizex=img_width, sizey=img_height,
-            layer = "below",
-            xanchor="right", yanchor="bottom", sizing= "contain",
-        ),
-
-
-        )
-
-    return fig.to_dict()
-
-def balon(option_slctd,clickData):
-    global width, height
-    #verilerimizi filtrelemeyi 2farklı df kulanarak oluşturma
-    selected_country = clickData
-    filtered_merged_df = filter_total(df_air, year=option_slctd, dim1='Total', dim1_y=None)
-    filtereddeath_merged_df = filter_total(df_death, year=option_slctd, dim1_y=None)
-    #komşu ülkeleri bulmak için apı defi hazırlamak
-    def get_neighbors(country_code):
-        url = f"https://restcountries.com/v3.1/alpha/{country_code}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            if data and isinstance(data, list) and 'borders' in data[0]:
-                return data[0]['borders']
-        return None
-
-    neighbor_countries = get_neighbors(selected_country)
-    all_bubble = []
-    #Komşu ülkelerin varlığını kontrol etmek.(JPN nın komşu ülkesi yok gibi)
-    if neighbor_countries:
-        all_bubble = neighbor_countries
-        all_bubble.append(selected_country)
-    else:
-        all_bubble.append(selected_country)
-    #Bubble lara rastgele renkler atama
-    def generate_random_color():
-        red = random.randint(0, 255)
-        green = random.randint(0, 255)
-        blue = random.randint(0, 255)
-        return (red, green, blue)
-
-    size = []
-    sizecolor = []
-    y = []
-    x = []
-    death = []
-    #Baloncuklara pm2.5 değerlerini atama
-    for country_code in all_bubble:
-        # Belirli bir ülke koduna sahip olan satırların "FactValueNumeric" verilerini alın
-        filtered_data = filtered_merged_df.loc[filtered_merged_df["SpatialDimValueCode"] == country_code, "FactValueNumeric"]
-        
-        # Filtrelenmiş verinin boş olup olmadığını kontrol edin
-        if not filtered_data.empty:
-            # Eğer veri varsa, ilk değeri alın
-            first_value = filtered_data.iloc[0]
-            size.append(first_value)  # Tek bir değeri listeye ekleyin
-        else:
-            # Eğer veri yoksa, 0 ekleyin ya da başka bir işlem yapın
-            size.append(0)
-            
-        y.append(5)
-
-        # sizecolor listesine rastgele renk ekleme
-        sizecolor.append(generate_random_color())
-        
-    # Baloncukların boyutunu ayarlayaabilmek için
-    max_size = max(size)
-    for i in range(len(size)):
-        size[i] = size[i] * (1/max_size*200)*0.3
-
-    #Boyutlara göre sıralamak için sözlük oluşturma (ülke isimlerinin boyutlarla senkronize olması için)
-    combined_dict = dict(zip(all_bubble, size))
-    # Sözlüğü boyuta göre sıralama
-    sorted_dict = dict(sorted(combined_dict.items(), key=lambda item: item[1]))  # item[1] boyutları temsil eder
-    #Ülkelere ölüm sayılarını atama ve baloncuklar arasındaki mesafeyi ayarlama
-    sumsizes = 0
-    for key in sorted_dict:
-        sumsizes += sorted_dict[key]
-        x.append(sumsizes)
-        filtered_death_data = filtereddeath_merged_df.loc[filtereddeath_merged_df["Country Code"] == key, "Percentage of cause-specific deaths out of total deaths"].astype(float)
-        if filtered_death_data.empty:
-            death.append(0)
-        else:
-            death.extend(filtered_death_data)
-
-    colors = sizecolor  # Bubble'ların renkleri
-    colors = [f"rgb{color}" for color in sizecolor]
-
-    #Baloncuklara yazılacak text'i oluşturmak için
-    for i in range(len(all_bubble)):
-        death[i]=float(death[i])
-        if death[i] == 0:
-            death[i] = ''    
-        all_bubble[i] = str(list(sorted_dict.keys())[i]) + '<br>' + str(death[i])
-        
-
-    # Bubble chart'i oluşturma
-    fig = go.Figure(data=go.Scatter(
-        x=x,
-        y=y,
-        mode='markers+text',
-        marker=dict(
-            size=list(sorted_dict.values()),
-            color=colors,
-            opacity=1
-        ),
-        hoverinfo="text",  # Metinleri fareyle üzerine gelindiğinde göster
-        textposition="top center",  # Metin konumu
-        hovertext=all_bubble,
-        text='%' + all_bubble,
-        textfont=dict(
-            family="Arial",  # Font ailesi
-            size=13,         # Metin boyutu
-            color="black"    # Metin rengi
-        ),
-    ))
-    # Grafik özelliklerini ayarlama
-    fig.update_layout(
-        showlegend=False,
-        plot_bgcolor='rgba(0,0,0,0)',  # Arka plan rengini şeffaf yapar
-        paper_bgcolor='rgba(0,0,0,0)', # Kağıt (grafik dışındaki alan) arka plan rengini şeffaf yapar
-        margin=dict(l=0, r=0, t=50, b=0), # Grafik içindeki beyaz kenarlıkları kaldırır ve üst kenara metin eklemek için biraz boşluk bırakır
-        xaxis=dict(
-            showgrid=False,  # x eksenindeki ızgaraları kaldırır
-            showticklabels=False  # x eksenindeki sayı etiketlerini kaldırır
-        ),  
-        yaxis=dict(
-            showgrid=False,  # y eksenindeki ızgaraları kaldırır
-            showticklabels=False  # y eksenindeki sayı etiketlerini kaldırır
-        ),
-        width = width * 0.47,
-        height = height * 0.2475
-    )
-
-    # Metni ekleyin
-    fig.add_annotation(
-        xref="paper",  # Metnin x koordinatının kağıdın içindeki bir oran olmasını sağlar
-        yref="paper",  # Metnin y koordinatının kağıdın içindeki bir oran olmasını sağlar
-        x=0.5,         # Metnin x konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
-        y=1.15,        # Metnin y konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
-        text= country_name + " ve Komşu Ülkeleri",  # Metin içeriği
-        showarrow=False,        # Ok gösterme
-        font=dict(
-            family="Arial",     # Font ailesi
-            size=24,            # Metin boyutu
-            color= "black"
-        )
-    )
-    # Aşağıya bilgi eklemek için
-    fig.add_annotation(
-        xref="paper",           # Metnin x konumunu kağıdın içindeki bir orana göre belirler
-        yref="paper",           # Metnin y konumunu kağıdın içindeki bir orana göre belirler
-        x=0.95,                 # Metnin x konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
-        y=0.05,                 # Metnin y konumu (0-1 arasında bir değer olarak kağıdın içindeki yüzdelik oran)
-        text="Baloncukların büyüklükleri havadaki pm2.5 seviyesini, üstündeki değerler ise ölüm oranını temsil eder.",  # Metin içeriği
-        showarrow=False,        # Ok gösterme
-        font=dict(
-            family="Arial",     # Font ailesi
-            size=14,            # Metin boyutu
-            color="black"       # Metin rengi
-        )
-    )
-
-    return fig.to_dict()
 
 def gösterge(option_slctd, clickData):
-    global width, height
-    fact_value = filter_total(
-        merged_df, year=option_slctd, country=clickData,
-    )['FactValueNumeric']
-
-    plot_bgcolor = 'rgba(0,0,0,0)'
-    quadrant_colors = [plot_bgcolor, "#d3382e", "#f2a529", "#eff229", "#85e043"]
-    quadrant_text = ["", "<b>Çok yüksek</b>", "<b>Yüksek</b>", "<b>Orta</b>", "<b>Düşük</b>"]
-    n_quadrants = len(quadrant_colors) - 1
-
-    current_value = safe_first(fact_value, default=0)
-    min_value = 0
-    max_value = 70
-    hand_length = np.sqrt(2) / 4
-    hand_angle = np.pi * (1 - (max(min_value, min(max_value, current_value)) - min_value) / (max_value - min_value))
-
-    fig = go.Figure(
-        data=[
-            go.Pie(
-                values=[0.5] + (np.ones(n_quadrants) / 2 / n_quadrants).tolist(),
-                rotation=90,
-                hole=0.5,
-                marker_colors=quadrant_colors,
-                text=quadrant_text,
-                textfont=dict(size=7,color="black"),
-                textinfo="text",
-                hoverinfo="skip",
-            ),
-        ],
-        layout=go.Layout(
-            showlegend=False,
-            margin=dict(b=0,t=0,l=0,r=30),
-            width=width*0.2,
-            height=height*.2,
-            paper_bgcolor=plot_bgcolor,
-            annotations=[
-                go.layout.Annotation(
-                    text=f"<b> pm2.5 seviyesi </b><br>{current_value}",
-                    x=0.5, xanchor="center", xref="paper",
-                    y=0.25, yanchor="bottom", yref="paper",
-                    showarrow=False,
-                )
-            ],
-            shapes=[
-                go.layout.Shape(
-                    type="circle",
-                    x0=0.48, x1=0.52,
-                    y0=0.48, y1=0.52,
-                    fillcolor="#333",
-                    line_color="#333",
-                ),
-                go.layout.Shape(
-                    type="line",
-                    x0=0.5, x1=0.5 + hand_length * np.cos(hand_angle)*0.6,
-                    y0=0.5, y1=0.5 + hand_length * np.sin(hand_angle),
-                    line=dict(color="#333", width=4)
-                )
-            ]
-        )
+    return _gosterge_chart.figure(
+        option_slctd, clickData,
+        width=width, height=height,
     )
-    
-    return fig.to_dict()
 
 def kursun(clickData):
-    filtered_selected_df = filter_total(merged_df, country=clickData)
-    if filtered_selected_df.empty:
-        return go.Figure().to_dict()
-
-    max_year = int(filtered_selected_df['Year'].max())
-    max_yeareksi = max_year - 1 if max_year > 2010 else max_year
-
-    in_range = filtered_selected_df[filtered_selected_df['Year'] >= 2010]
-    mean_valueFactValue = in_range['FactValueNumeric'].mean()
-    mean_valuePerc = in_range['Percentage of cause-specific deaths out of total deaths'].mean()
-    mean_valuePop = in_range[in_range['Year'] <= max_year]['Death rate per 100 000 population'].mean()
-
-    rows_by_year = {
-        year: filtered_selected_df[filtered_selected_df['Year'] == year]
-        for year in (max_year, max_yeareksi)
-    }
-
-    def value_for(year, col):
-        return safe_first(rows_by_year[year][col], default=0)
-
-    fig = go.Figure()
-    
-    ### pm2.5
-    fig.add_trace(go.Indicator(
-        mode="number+gauge+delta",
-        number = {"suffix": "μm"},
-        value=value_for(max_year, 'FactValueNumeric'),
-        delta={"reference": value_for(max_yeareksi, 'FactValueNumeric'),
-               'decreasing': {
-                   'color': "green",
-               },
-               'increasing': {
-                   'color': "red",
-               }},
-        domain={'x': [0.25, 1], 'y': [0.13, 0.3]},
-        gauge={
-            'shape': "bullet",
-            'axis': {'tickangle':0,'tickwidth':0.2,'tickfont':dict(size=8,color="black"),'range': [0,65]},
-            'threshold': {
-                'line': {'color': "blue", 'width': 1},
-                'thickness': 0.5,
-                'value': mean_valueFactValue,
-            },
-            'steps': [
-                {'range': [0, 20], 'color': "#9ade5d"},
-                {'range': [20,35], 'color': "#f0f259"},
-                {'range': [35, 50], 'color': "#e7a847"},
-                {'range': [50,65], 'color': "#d3382e"},],
-            'bar': {'color': "black",'thickness':0.1}
-        }
-    ))
-    
-    #### death number for 1000
-    
-    fig.add_trace(go.Indicator(
-        mode="number+gauge+delta",
-        number = {"font":dict(size=14)},
-        value=value_for(max_year, 'Death rate per 100 000 population'),
-        delta={"reference": value_for(max_yeareksi, 'Death rate per 100 000 population'),
-                'decreasing': {
-                    'color': "green",
-                },
-                'increasing': {
-                    'color': "red",
-                }},
-        domain={'x': [0.25, 1], 'y': [0.43, 0.6]},
-        gauge={
-            'shape': "bullet",
-            'axis': {'tickangle':0,'tickwidth':0.2,'tickfont':dict(size=8,color="black"),'range': [0,120]},
-            'threshold': {
-                'line': {'color': "blue", 'width': 1},
-                'thickness': 0.5,
-                'value': mean_valuePop,
-            },
-            'steps': [
-        {'range': [0,30], 'color': "#9ade5d"},
-        {'range': [30,60], 'color': "#f0f259"},
-        {'range': [60, 90], 'color': "#e7a847"},
-        {'range': [90,120], 'color': "#d3382e"}],
-            'bar': {'color': "black",'thickness':0.1}
-        }
-    ))
-    
-    ### death percentage
-    
-    fig.add_trace(go.Indicator(
-        mode="number+gauge+delta",
-        value=value_for(max_year, 'Percentage of cause-specific deaths out of total deaths'),
-        number = {"prefix": "%"},
-        delta={"reference": value_for(max_yeareksi, 'Percentage of cause-specific deaths out of total deaths'),
-               'decreasing': {
-                   'color': "green",
-               },
-               'increasing': {
-                   'color': "red",
-               }
-               },
-        domain={'x': [0.25, 1], 'y': [0.73, 0.9]},
-        gauge={
-            'shape': "bullet",
-            'axis': {'tickangle':0,'tickwidth':0.2,'tickfont':dict(size=8,color="black"), 'range': [0,12]},
-            'threshold': {
-                'line': {'color': "blue", 'width': 1},
-                'thickness': 0.5,
-                'value': mean_valuePerc,
-            },
-            'steps': [
-        {'range': [0,3], 'color': "#9ade5d"},
-        {'range': [3,6], 'color': "#f0f259"},
-        {'range': [6, 9], 'color': "#e7a847"},
-        {'range': [9,12], 'color': "#d3382e"}],
-            'bar': {'color': "black",'thickness':0.1}
-        }
-    ))
-
-    
-    fig.update_layout(
-        showlegend=False,
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=0, r=0, t=0, b=0),
-        width=width * 0.17,  # Genişlik parametresini yarıya indir
-        height=height * 0.24,  # Yükseklik parametresini üçte bir oranında artır
-        annotations=[
-            dict(
-                text="<span style='font-size:8;color:black'><b>SYH'a bağlı<br>Yüzdelik <br> Ölüm</b></span>",
-                x=0.03,
-                y=0.9,
-                showarrow=False,
-                xref="paper",
-                yref="paper"
-            ),
-            dict(
-                text="<span style='font-size:8;color:black'><b>100 000 <br>kişide <br>ölüm</b></span>",
-                x=0.07,
-                y=0.5,
-                showarrow=False,
-                xref="paper",
-                yref="paper"
-            ),
-            dict(
-                text="<span style='font-size:8;color:black'><b>pm2.5 <br> Seviyesi</b></span>",
-                x=0.06,
-                y=0.15,
-                showarrow=False,
-                xref="paper",
-                yref="paper"
-            )
-        ]
+    return _kursun_chart.figure(
+        clickData,
+        width=width, height=height,
     )
 
+def sunburst():
+    return _sunburst_chart.figure(width=width, height=height)
 
-
-    return fig.to_dict()
+def linearea():
+    return _linearea_chart.figure(width=width, height=height)
 
 
 #### radar callback
@@ -1513,140 +780,54 @@ hovered_location = ""
     [Input('secilenyıl', 'value')]
 
 )
-def display_hover_data(hoverData,option_slctd):
+def display_hover_data(hoverData, option_slctd):
     global width, height
     global hovered_location
-    location = ""
-    RadarWorldForCountry = np.zeros(5, dtype=float)
-    if hoverData is not None:
-        # Üzerine gelinen veriyi alma
-        location = hoverData['points'][0]['location']  
-        if location != hovered_location:
-            hovered_location = location
-            filtered_selected_df = filter_total(merged_df, year=option_slctd, country=location)
-
-            if filtered_selected_df.empty:
-                RadarWorldForCountry = np.zeros(5, dtype=float)
-            else:
-                RadarWorldForCountry[0] = safe_first(filtered_selected_df['NormalizationForNumber'], default=0)
-                RadarWorldForCountry[1] = safe_first(filtered_selected_df['NormalizationForPerDeath'], default=0)
-                RadarWorldForCountry[2] = safe_first(filtered_selected_df['NormalizationForAgeStandardizedDeathRate'], default=0)
-                RadarWorldForCountry[3] = safe_first(filtered_selected_df['NormalizationForFactValueNumericLow'], default=0)
-                RadarWorldForCountry[4] = safe_first(filtered_selected_df['NormalizationForFactValueNumericHigh'], default=0)
-
-                categories = ['Ölüm Sayısı','Yüzdelik <br> Ölüm Oranı','Yaşa Standardize <br> Edilmiş Oran', 'Max pm2.5 <br> seviyesi', 'Min pm2.5  <br> seviyesi']
-        
-           # Eğer verilerimiz yeterli değil ise,
-            if RadarWorldForCountry[0] == 0:
-                theta = np.linspace(0, 2*np.pi, 100)
-                
-                x = 0.5 * np.cos(theta)
-                y = 0.5 * np.sin(theta)
-                
-                # Gözler
-                eye_x = [0.3, -0.3]
-                eye_y = [0.3, 0.3]
-                
-                # Ağız
-                mouth_x = np.linspace(-0.3, 0.3, 100)
-                mouth_y = 0.1 * np.cos(mouth_x * 5)
-                
-                fig = go.Figure()
-                
-                fig.add_trace(go.Scatter(x=x, y=y, mode='lines', line=dict(color='black')))  # Dış çizgi
-                fig.add_trace(go.Scatter(x=eye_x, y=eye_y, mode='markers', marker=dict(color='black', size=10)))  # Gözler
-                fig.add_trace(go.Scatter(x=mouth_x, y=mouth_y, mode='lines', line=dict(color='black')))  # Ağız
-                
-                fig.update_layout(
-                    title='Ne yazık ki bu ülkenin yeterli verileri paylaşılmadı.',
-                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    showlegend=False
-                )
-                style = {'position': 'fixed', 'top': str(hoverData['points'][0]['bbox']['y1'] + 10) + 'px', 'left': str(hoverData['points'][0]['bbox']['x1'] + 10) + 'px', 'padding': '10px', 'border': '1px solid black', 'background-color': 'white', 'display': 'block', 'z-index': 9999}
-                return style,  fig.to_dict()
-            
-                # Verilerimiz yeterli ise
-            else:
-                # Figure oluşturma
-                fig = go.Figure()
-                # Dünya ortalaması için Barpolar oluşturma
-                fig.add_trace(go.Barpolar(
-                    r=RadarWorld,
-                    theta=categories,
-                    name='Dünya Ortalaması',
-                    marker_color=['#ffa600'] * 6,
-                    marker_line_color='white',
-                    marker_line_width=0.2,  # Çubukların kalınlığını artırır
-                    hoverinfo=['theta'] * 2,
-                    opacity=0.7,
-                    width=0.97,  # Çubukların genişliğini artırır
-                    base=0,
-                    thetaunit='radians', 
-                ))
-                # Üzerinde bulunduğumuz ülke ortalaması için Barpolar oluşturma
-                fig.add_trace(go.Barpolar(
-                    r=RadarWorldForCountry.tolist(),
-                    theta=categories,
-                    name='Seçilen Ülke Ortalaması',
-                    marker_color=['#bc5090'] *6 ,
-                    marker_line_color='white',
-                    marker_line_width=0.2,  # Çubukların kalınlığını artırır
-                    hoverinfo=['theta'] * 9,
-                    opacity=0.7,  
-                    width=0.97,  # Çubukların genişliğini artırır
-                    base=0,
-                    thetaunit='radians',  
-                ))
-                
-                # Polar grafiğimizin görünümü ve davranışını özelleştirme
-                fig.update_layout(
-                    polar=dict(
-                        radialaxis=dict(
-                            showline=False,
-                            showticklabels=False,
-                            linewidth=2,
-                            gridcolor='rgba(0,0,0,0)',
-                            gridwidth=2,
-                        ),
-                        angularaxis=dict(
-                            tickfont=dict(
-                                size=11,
-    color='rgb(215, 99, 115)'  # Theta labellarının rengini belirleme
-),
-                            linewidth=3,
-                            showline=False,
-                            showticklabels=True,
-                            rotation=90,  # Bu, kategori etiketlerini yatay hale getirir
-                        )
-                    ),
-                    showlegend=True,
-                    legend=dict(
-                        orientation="h",
-                    ),
-                    title='Dünya ve Ülke Ortalaması Radar Grafiği',
-                    title_font=dict(size=12,color='black'),
-                    margin=dict(l=25, r=25, t=50, b=25),
-                    polar_bgcolor='#e8ebf5',   
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(255,255,255,0.85)',
-                    width = width * 0.25,
-                    height = height * 0.33
-                )
-        
-                style = {'position': 'fixed', 'top': str(hoverData['points'][0]['bbox']['y1'] + 10) + 'px', 'left': str(hoverData['points'][0]['bbox']['x1'] + 10) + 'px', 'padding': '10px', 'background-color': 'transparent', 'display': 'block', 'z-index': 9999,'width':'20%','height':'250px',}
-                hoverData = None
-                return style,  fig.to_dict()
-        else:   
-            hovered_location = ""
-            location =""
-            style = {'display': 'none'}
-            return style, {'data': []}
-    else:
+    if hoverData is None:
         hovered_location = ""
-        location =""
-        style = {'display': 'none'}
-        return style, {'data': []}
+        return {'display': 'none'}, {'data': []}
+
+    location = hoverData['points'][0]['location']
+    if location == hovered_location:
+        return {'display': 'none'}, {'data': []}
+
+    hovered_location = location
+    fig_dict = _radar_chart.figure(location, option_slctd, width=width, height=height)
+
+    if fig_dict is None:
+        hovered_location = ""
+        return {'display': 'none'}, {'data': []}
+
+    bbox = hoverData['points'][0]['bbox']
+    # Eksik veri → ağlayan yüz (beyaz arka plan + border)
+    has_data = any(
+        t.get('type') == 'barpolar'
+        for t in fig_dict.get('data', [])
+    )
+    if has_data:
+        style = {
+            'position': 'fixed',
+            'top': str(bbox['y1'] + 10) + 'px',
+            'left': str(bbox['x1'] + 10) + 'px',
+            'padding': '10px',
+            'background-color': 'transparent',
+            'display': 'block',
+            'z-index': 9999,
+            'width': '20%',
+            'height': '250px',
+        }
+    else:
+        style = {
+            'position': 'fixed',
+            'top': str(bbox['y1'] + 10) + 'px',
+            'left': str(bbox['x1'] + 10) + 'px',
+            'padding': '10px',
+            'border': '1px solid black',
+            'background-color': 'white',
+            'display': 'block',
+            'z-index': 9999,
+        }
+    return style, fig_dict
     
     
 
@@ -1679,89 +860,6 @@ def toggle_info_div(close_clicks,close_clicks2, info_clicks, info_clicks2):
         return {'display': 'none'}, "", {'data': []}, {'data': []}, {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'background-color': 'rgba(0, 0, 0, 0.8)', 'z-index': '1000', 'display': 'block','overflow': 'scroll','border':'3px solid white','box-sizing':'borderbox'}
     else:
         raise dash.exceptions.PreventUpdate
-
-def sunburst():
-    
-    new_color_scale = [
-        (0, '#b3eb73'),
-        (0.5, '#fbed71'),
-        (0.55, '#efb35d'),
-        (1, '#e86c75'),
-    ]
-
-
-    fig = px.sunburst(df_air, path=['ParentLocation', 'Location'], values='NormalizationForFactValueNumeric',
-                      color='NormalizationForFactValueNumeric',
-                      color_continuous_scale=new_color_scale,
-                      color_continuous_midpoint=np.average(df_air['NormalizationForFactValueNumeric'], weights=df_air['NormalizationForFactValueNumeric']))
-    
-    fig.update_traces(hovertemplate='')
-    fig.update_traces(hoverinfo='none')
-    
-    fig.update_layout(
-        margin=dict(l=0, r=0, t=30, b=30),
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        coloraxis_showscale=False,
-        showlegend=False ,
-        width = width * 0.315,
-        height = height * 0.4)
-    return fig.to_dict()
-
-def linearea():
-    
-    filtered_df_for_filledareaplotforair = df_air.copy
-
-    # filtered_df_for_filledareaplotforair fonksiyonunu çağırarak gerçek DataFrame'i al
-    result_df = filtered_df_for_filledareaplotforair()
-
-    # DataFrame'i "ParentLocation" ve "Period" sütunlarına göre gruplayacak ve her bir grubun ortalamasını hesaplayacak
-    region_mean_values = result_df.groupby(["ParentLocation", "Period"]).mean().reset_index()
-    
-    region_mean_values.loc[region_mean_values["ParentLocation"] == "Africa", "ParentLocation"] = "Afrika"
-    region_mean_values.loc[region_mean_values["ParentLocation"] == "South-East Asia", "ParentLocation"] = "Güney Doğu Asya"
-    region_mean_values.loc[region_mean_values["ParentLocation"] == "Europe", "ParentLocation"] = "Avrupa"
-    region_mean_values.loc[region_mean_values["ParentLocation"] == "Americas", "ParentLocation"] = "Amerika"
-    region_mean_values.loc[region_mean_values["ParentLocation"] == "Eastern Mediterranean", "ParentLocation"] = "Ortadoğu"
-    region_mean_values.loc[region_mean_values["ParentLocation"] == "Western Pacific", "ParentLocation"] = "Batı Pasifik"
-
-    color_palette = {
-        'Afrika': '#5E1675',                      
-        'Güney Doğu Asya': '#39A7FF',                        
-        'Avrupa': '#337357',                      
-        'Amerika': '#FFD23F',  
-        'Ortadoğu': '#211951',
-        'Batı Pasifik': '#FF4B91'                    
-    }
-
-    fig = px.area(region_mean_values, x="Period", y="FactValueNumericHigh", color="ParentLocation", 
-                  line_group="ParentLocation", color_discrete_map=color_palette,
-                  labels={
-                   "ParentLocation": "Bölgeler",
-               },
-                  custom_data=["Period", "FactValueNumericHigh"])
-
-
-
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        width = width * 0.315,
-        height = height * 0.4,
-        legend=dict(
-            font=dict(
-                size=8  # Legend metni için yazı tipi boyutunu ayarla
-            )
-        ),
-        xaxis_tickangle=45,
-        xaxis_title="Yıl",  # x ekseninin adını değiştir
-        yaxis_title="Pm2.5 Seviyesi",   # y ekseninin adını değiştir
-    )
-
-
-    return fig.to_dict()
-
-
 
 
 
