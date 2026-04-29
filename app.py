@@ -148,11 +148,14 @@ if sqlmerged_df[column].dtype == 'float64' or sqlmerged_df[column].dtype == 'int
 
 # Uygulama düzeni
 app.layout = html.Div([
+    # ── State stores (multi-tab izolasyonu için) ─────────────────────────────
+    dcc.Store(id='viewport-store', storage_type='memory', data={'width': 1300, 'height': 800}),
+    dcc.Store(id='filter-store',   storage_type='memory', data={'is_filtered': 0}),
+    dcc.Store(id='panel-store',    storage_type='memory', data={'is_hidden': 1}),
+    dcc.Store(id='hover-store',    storage_type='memory', data={'last_iso3': ''}),
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content'),
-    html.Div(id='browser-info', style={'display': 'none'}),
     html.Div(id='dummy-input', style={'display': 'none'}),
-    html.P(id='display-browser-info', style={'display': 'none'}),
    
 html.Div([
     html.Div([
@@ -470,24 +473,24 @@ html.Div([
 )
 ])
 
-# Yükseklik Genişlik default tanımlama,Global değişken olarak kullanabilmek için yapıldı.JS ile tarayıcı boyutu alınıyor ve harita ölçeklendirmede kullanılıyor.
-width = 1300
-height = 800
-isFiltered = 0
 # Map haritasının güncelleme callback'i
 @app.callback(
-    Output('Harita', 'figure'),
+    [Output('Harita', 'figure'),
+     Output('filter-store', 'data')],
     [Input('secilenyıl', 'value'),
      Input('yesilbuton', 'n_clicks'),
      Input('sarıbuton', 'n_clicks'),
      Input('turuncubutton', 'n_clicks'),
-     Input('kırmızıbuton', 'n_clicks')
-     ]
+     Input('kırmızıbuton', 'n_clicks')],
+    [State('viewport-store', 'data'),
+     State('filter-store', 'data')],
 )
 #Haritayı oluşturma
-def update_maps(option_slctd,greenButton_clicks,yellowButton_clicks,orangeButton_clicks,redButton_clicks):
-    global width, height, isFiltered
-    
+def update_maps(option_slctd, greenButton_clicks, yellowButton_clicks, orangeButton_clicks, redButton_clicks, vp, filter_data):
+    width = (vp or {}).get('width', 1300)
+    height = (vp or {}).get('height', 800)
+    isFiltered = (filter_data or {}).get('is_filtered', 0)
+
     ctx = dash.callback_context
     # if not ctx.triggered:
     #     raise dash.exceptions.PreventUpdate
@@ -645,14 +648,9 @@ def update_maps(option_slctd,greenButton_clicks,yellowButton_clicks,orangeButton
     )
 
 
-    return fig
+    return fig, {'is_filtered': isFiltered}
 
 
-
-isHidden = 1
-country_name=""
-country_name_english=""
-cloudcolor=[]
 
 @app.callback(
     [Output('clicked_location', 'style'),
@@ -665,30 +663,36 @@ cloudcolor=[]
      Output('pasta', 'figure'),
      Output('balon', 'figure'),
      Output('gösterge', 'figure'),
-     Output('kursun', 'figure')],  
+     Output('kursun', 'figure'),
+     Output('panel-store', 'data')],
     [Input('Harita', 'clickData'),
      Input('closeButton', 'n_clicks')],
-    [State('secilenyıl', 'value')],
+    [State('secilenyıl', 'value'),
+     State('viewport-store', 'data'),
+     State('panel-store', 'data')],
 )
+def display_click_data(clickData, n_clicks, option_slctd, vp, panel_data):
+    width = (vp or {}).get('width', 1300)
+    height = (vp or {}).get('height', 800)
+    is_hidden = (panel_data or {}).get('is_hidden', 1)
 
-def display_click_data(clickData, n_clicks, option_slctd):
-    global isHidden,country_name,color,country_name_english
-    if n_clicks and isHidden == 0:
-        hide = {'display': 'none'}
-        isHidden = 1
-        clickData = None
-        return hide,hide,"","", {'data': []} ,{'data': []} ,{'data': []},{'data': []} ,{'data': []} ,{'data': []},{'data': []}      # Boş bir figür döndür
+    _empty = {'data': []}
+    _hide  = {'display': 'none'}
+
+    if n_clicks and is_hidden == 0:
+        return (_hide, _hide, "", "",
+                _empty, _empty, _empty, _empty, _empty, _empty, _empty,
+                {'is_hidden': 1})
+
     if clickData is not None:
-        isHidden = 0  # clicked_location görünür hale gelir
         clicked_location = clickData['points'][0]['location']
-        country_name = safe_first(
+        country_name_en = safe_first(
             merged_df[merged_df['Country Code'] == clicked_location]['Country Name'].drop_duplicates(),
             default=clicked_location,
         )
-        country_name_english = country_name
-        country_name = to_turkish(country_name)
-        if ' ' in country_name:
-            country_name = country_name.split(' ')[0]
+        country_name_tr = to_turkish(country_name_en)
+        if ' ' in country_name_tr:
+            country_name_tr = country_name_tr.split(' ')[0]
 
         filtered_df_forcolor = filter_total(merged_df, year=option_slctd, country=clicked_location)
         death_value = safe_first(filtered_df_forcolor['Number'], default=0)
@@ -700,103 +704,54 @@ def display_click_data(clickData, n_clicks, option_slctd):
         norm_value = safe_first(filtered_df_forcolor['NormalizationForFactValueNumeric'])
         cloud_img, cloud_bg = colorchoose(norm_value)
 
-        style = {'position': 'fixed', 'top': 0, 'right': 0, 'margin-top': '6.25%', 'margin-right': '5%', 'margin-bottom': '6.25%', 'margin-left': '25%', 'width': '70.5%', 'height': '75%', 'background-color': 'rgb(255,255,255,0.95)', 'z-index': '1000', 'display': 'inline-block', 'border-radius': '15px','box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)','border': '1px solid rgb(135,135,135)'}
-        style2 = {'display':'inline-block', 'background-color': cloud_bg,'width': '18%','height': '75%','position': 'fixed','margin-top': '5.75%','margin-bottom': '6.25%','margin-left': '5%','border-radius': '15px','box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)','border': '1px solid rgb(135,135,135)'}
-        fig = histogram(option_slctd, clicked_location)
-        fig2 = cizgikutu(clicked_location)
-        fig3 = cizgi(clicked_location)
-        fig4 = pasta(option_slctd, clicked_location)
-        fig5 = balon(option_slctd, clicked_location)
-        göstergefig = gösterge(option_slctd, clicked_location)
-        kursunfig = kursun(clicked_location)
-        return style, style2, cloud_img, text, fig, fig2, fig3, fig4, fig5, göstergefig, kursunfig
-    else:
-        return {'display': 'none'},{'display': 'none'},"","", {'data': []},{'data': []} ,{'data': []},{'data': []} ,{'data': []} ,{'data': []}  ,{'data': []}      # Eğer clickData yoksa, clicked_location gizlenir ve boş bir figür döndür
-    
-### Grafik fonksiyonları — charts paketine delege edildi
+        style  = {'position': 'fixed', 'top': 0, 'right': 0, 'margin-top': '6.25%', 'margin-right': '5%', 'margin-bottom': '6.25%', 'margin-left': '25%', 'width': '70.5%', 'height': '75%', 'background-color': 'rgb(255,255,255,0.95)', 'z-index': '1000', 'display': 'inline-block', 'border-radius': '15px', 'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)', 'border': '1px solid rgb(135,135,135)'}
+        style2 = {'display': 'inline-block', 'background-color': cloud_bg, 'width': '18%', 'height': '75%', 'position': 'fixed', 'margin-top': '5.75%', 'margin-bottom': '6.25%', 'margin-left': '5%', 'border-radius': '15px', 'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)', 'border': '1px solid rgb(135,135,135)'}
 
-def histogram(option_slctd, clickData):
-    return _histogram_chart.figure(
-        option_slctd, clickData,
-        width=width, height=height,
-        country_name=country_name,
-    )
+        # Grafik çağrıları — orijinal Output sırası korundu (cizgi/cizgikutu pozisyon bilinçli)
+        return (
+            style, style2, cloud_img, text,
+            _histogram_chart.figure(option_slctd, clicked_location, width=width, height=height, country_name=country_name_tr),
+            _cizgikutu_chart.figure(clicked_location, width=width, height=height, country_name_english=country_name_en),
+            _cizgi_chart.figure(clicked_location, width=width, height=height, country_name=country_name_tr),
+            _pasta_chart.figure(option_slctd, clicked_location, width=width, height=height, country_name=country_name_tr, country_name_english=country_name_en),
+            _balon_chart.figure(option_slctd, clicked_location, width=width, height=height, country_name=country_name_tr),
+            _gosterge_chart.figure(option_slctd, clicked_location, width=width, height=height),
+            _kursun_chart.figure(clicked_location, width=width, height=height),
+            {'is_hidden': 0},
+        )
 
-def cizgikutu(clickData):
-    return _cizgikutu_chart.figure(
-        clickData,
-        width=width, height=height,
-        country_name_english=country_name_english,
-    )
-
-def cizgi(clickData):
-    return _cizgi_chart.figure(
-        clickData,
-        width=width, height=height,
-        country_name=country_name,
-    )
-
-def pasta(option_slctd, clickData):
-    return _pasta_chart.figure(
-        option_slctd, clickData,
-        width=width, height=height,
-        country_name=country_name,
-        country_name_english=country_name_english,
-    )
-
-def balon(option_slctd, clickData):
-    return _balon_chart.figure(
-        option_slctd, clickData,
-        width=width, height=height,
-        country_name=country_name,
-    )
-
-def gösterge(option_slctd, clickData):
-    return _gosterge_chart.figure(
-        option_slctd, clickData,
-        width=width, height=height,
-    )
-
-def kursun(clickData):
-    return _kursun_chart.figure(
-        clickData,
-        width=width, height=height,
-    )
-
-def sunburst():
-    return _sunburst_chart.figure(width=width, height=height)
-
-def linearea():
-    return _linearea_chart.figure(width=width, height=height)
+    return (_hide, _hide, "", "",
+            _empty, _empty, _empty, _empty, _empty, _empty, _empty,
+            {'is_hidden': 1})
 
 
 #### radar callback
 
-hovered_location = ""
 @app.callback(
     [Output('hovered_location', 'style'),
-     Output('gül', 'figure')],  
-    [Input('Harita', 'hoverData')],
-    [Input('secilenyıl', 'value')]
-
+     Output('gül', 'figure'),
+     Output('hover-store', 'data')],
+    [Input('Harita', 'hoverData'),
+     Input('secilenyıl', 'value')],
+    [State('viewport-store', 'data'),
+     State('hover-store', 'data')],
 )
-def display_hover_data(hoverData, option_slctd):
-    global width, height
-    global hovered_location
+def display_hover_data(hoverData, option_slctd, vp, hover_data):
+    width = (vp or {}).get('width', 1300)
+    height = (vp or {}).get('height', 800)
+    last_iso3 = (hover_data or {}).get('last_iso3', '')
+
     if hoverData is None:
-        hovered_location = ""
-        return {'display': 'none'}, {'data': []}
+        return {'display': 'none'}, {'data': []}, {'last_iso3': ''}
 
     location = hoverData['points'][0]['location']
-    if location == hovered_location:
-        return {'display': 'none'}, {'data': []}
+    if location == last_iso3:
+        return {'display': 'none'}, {'data': []}, dash.no_update
 
-    hovered_location = location
     fig_dict = _radar_chart.figure(location, option_slctd, width=width, height=height)
 
     if fig_dict is None:
-        hovered_location = ""
-        return {'display': 'none'}, {'data': []}
+        return {'display': 'none'}, {'data': []}, {'last_iso3': ''}
 
     bbox = hoverData['points'][0]['bbox']
     # Eksik veri → ağlayan yüz (beyaz arka plan + border)
@@ -827,7 +782,7 @@ def display_hover_data(hoverData, option_slctd):
             'display': 'block',
             'z-index': 9999,
         }
-    return style, fig_dict
+    return style, fig_dict, {'last_iso3': location}
     
     
 
@@ -840,24 +795,31 @@ def display_hover_data(hoverData, option_slctd):
     [Input('closeButton2', 'n_clicks'),
      Input('closeButton3', 'n_clicks'),
      Input('info_circle1', 'n_clicks'),
-     Input('info_circle2', 'n_clicks'),
-     ],
+     Input('info_circle2', 'n_clicks')],
+    [State('viewport-store', 'data')],
     prevent_initial_call=True
 )
-def toggle_info_div(close_clicks,close_clicks2, info_clicks, info_clicks2):
+def toggle_info_div(close_clicks, close_clicks2, info_clicks, info_clicks2, vp):
+    width  = (vp or {}).get('width',  1300)
+    height = (vp or {}).get('height', 800)
+
     ctx = dash.callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
 
     prop_id = ctx.triggered[0]['prop_id']
-    if prop_id == 'closeButton2.n_clicks' or prop_id == 'closeButton3.n_clicks':
+    if prop_id in ('closeButton2.n_clicks', 'closeButton3.n_clicks'):
         return {'display': 'none'}, "", {'data': []}, {'data': []}, {'display': 'none'}
     elif prop_id == 'info_circle1.n_clicks':
-        sunburstfig = sunburst()
-        lineareafig = linearea()
-        return {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'z-index': '1000', 'display': 'block', 'text-align':'center'}, "assets/maps.png", sunburstfig, lineareafig, {'display': 'none'}
+        return (
+            {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'z-index': '1000', 'display': 'block', 'text-align': 'center'},
+            "assets/maps.png",
+            _sunburst_chart.figure(width=width, height=height),
+            _linearea_chart.figure(width=width, height=height),
+            {'display': 'none'},
+        )
     elif prop_id == 'info_circle2.n_clicks':
-        return {'display': 'none'}, "", {'data': []}, {'data': []}, {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'background-color': 'rgba(0, 0, 0, 0.8)', 'z-index': '1000', 'display': 'block','overflow': 'scroll','border':'3px solid white','box-sizing':'borderbox'}
+        return {'display': 'none'}, "", {'data': []}, {'data': []}, {'position': 'absolute', 'margin-top': '5%', 'margin-right': '5%', 'margin-bottom': '5%', 'margin-left': '5%', 'width': '90%', 'height': '80%', 'background-color': 'rgba(0, 0, 0, 0.8)', 'z-index': '1000', 'display': 'block', 'overflow': 'scroll', 'border': '3px solid white', 'box-sizing': 'borderbox'}
     else:
         raise dash.exceptions.PreventUpdate
 
@@ -868,48 +830,12 @@ def toggle_info_div(close_clicks,close_clicks2, info_clicks, info_clicks2):
 
 
 
-#tarayıcı genişliğini ve yüksekliğini alma
+# Tarayıcı boyutunu viewport-store'a yazar (assets/js/viewport.js)
 app.clientside_callback(
-    """
-    function updateBrowserInfo() {
-        var browserWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-        var browserHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-        return [browserWidth, browserHeight];
-    }
-    """,
-    Output('browser-info', 'children'),
-    [Input('dummy-input', 'children')]
+    ClientsideFunction(namespace='viewport', function_name='updateViewport'),
+    Output('viewport-store', 'data'),
+    Input('dummy-input', 'children'),
 )
-
-# app.clientside_callback(
-#     """
-#     function close_clicked_location(n_clicks) {
-#         if (n_clicks > 0 && document.getElementById("info_div").style.display != "none") {
-#             document.getElementById("info_div").style.display = "none";
-#             console.log('imdat');
-#             return {'display': 'none'};
-#         }
-#     }
-#     """,
-#     Output('info_div', 'style'),
-#     Input('closeButton2', 'n_clicks')
-# )
-
-
-#Width ve Height değerlerini global değişkenlere atama
-@app.callback(
-    Output('display-browser-info', 'children'),
-    [Input('dummy-input', 'children'),
-     Input('browser-info', 'children')]
-)
-def display_browser_info(dummy, browser_info):
-    global width
-    global height
-    if browser_info:
-        browser_width, browser_height = browser_info
-        width = browser_width
-        height = browser_height
-    return None
     
     
     
