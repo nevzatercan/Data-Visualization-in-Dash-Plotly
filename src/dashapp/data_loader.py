@@ -194,6 +194,15 @@ def world_radar_means() -> np.ndarray:
 
 
 @lru_cache(maxsize=1)
+def load_table_data() -> pd.DataFrame:
+    """DataTable için hazırlanmış birleşik tablo (Total filtreli, gereksiz sütunlar çıkarılmış)."""
+    df = load_merged()
+    df = df[df["Dim1_y"] == "Total"].copy()
+    df["Year"] = df["Year"].astype(int)
+    return df.drop(columns=["Dim1_y", "Dim1_x", "Value"], errors="ignore")
+
+
+@lru_cache(maxsize=1)
 def world_residence_means() -> dict[str, float]:
     """Yerleşim türüne göre dünya PM2.5 ortalaması (pasta grafiği için)."""
     df = load_merged()
