@@ -13,18 +13,7 @@ from dash import dash_table, dcc, html
 import dash_mantine_components as dmc
 
 from dashapp.data_loader import load_table_data
-
-
-# ---------------------------------------------------------------------------
-# Yardımcı: DataTable stil listesi
-# ---------------------------------------------------------------------------
-
-_THRESHOLD_COLORS = {
-    "green":  "#b3eb73",
-    "yellow": "#fbed71",
-    "orange": "#efb35d",
-    "red":    "#e86c75",
-}
+from dashapp.theme import GRAPH_CONFIG, THRESHOLD_COLORS
 
 
 def _build_table_styles() -> list[dict]:
@@ -32,7 +21,7 @@ def _build_table_styles() -> list[dict]:
     styles: list[dict] = []
     for col, ranges in [
         ("Number", [
-            (0,     10_000, "green"),
+            (0,      10_000, "green"),
             (10_000, 20_000, "yellow"),
             (20_000, 50_000, "orange"),
             (50_000, None,   "red"),
@@ -52,7 +41,7 @@ def _build_table_styles() -> list[dict]:
             )
             styles.append({
                 "if": {"column_id": col, "filter_query": fq},
-                "backgroundColor": _THRESHOLD_COLORS[color],
+                "backgroundColor": THRESHOLD_COLORS[color],
                 "color": "white",
             })
     return styles
@@ -153,7 +142,7 @@ def make_info_modal1() -> dmc.Modal:
             html.Div(
                 [
                     html.Div(
-                        dcc.Graph(id="sunburst", figure={}, config={"displayModeBar": False}),
+                        dcc.Graph(id="sunburst", figure={}, config=GRAPH_CONFIG),
                         id="top_right_div",
                         style={
                             "height": "50%",
@@ -165,7 +154,7 @@ def make_info_modal1() -> dmc.Modal:
                         },
                     ),
                     html.Div(
-                        dcc.Graph(id="linearea", figure={}, config={"displayModeBar": False}),
+                        dcc.Graph(id="linearea", figure={}, config=GRAPH_CONFIG),
                         id="bottom_right_div",
                         style={
                             "height": "50%",

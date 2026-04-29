@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dash import dcc, html
 
+from dashapp.theme import GRAPH_CONFIG
+
 
 # ---------------------------------------------------------------------------
 # Sol dar panel — PM2.5 göstergesi
@@ -53,49 +55,46 @@ def make_side_panel() -> html.Div:
                 },
             ),
             dcc.Graph(id="kursun", figure={}),
+            # Açıklama satırı (çizgi göstergeleri)
             html.Div(
                 [
-                    html.Div(
-                        [
-                            html.Img(
-                                src="assets/img/çizgi.png",
-                                style={
-                                    "vertical-align": "middle",
-                                    "width": "5%",
-                                    "padding-left": "3%",
-                                    "margin-right": "-4%",
-                                },
-                            ),
-                            html.P(
-                                ": Tüm yılların ortalama değeri ",
-                                style={
-                                    "display": "inline-block",
-                                    "margin-left": "10px",
-                                    "vertical-align": "middle",
-                                    "font-size": "59%",
-                                },
-                            ),
-                            html.Img(
-                                src="assets/img/çizgi2.png",
-                                style={
-                                    "vertical-align": "middle",
-                                    "width": "11%",
-                                    "padding-left": "7%",
-                                },
-                            ),
-                            html.P(
-                                ": Son yılın değeri",
-                                style={
-                                    "display": "inline-block",
-                                    "vertical-align": "middle",
-                                    "font-size": "59%",
-                                    "margin-left": "1.5%",
-                                },
-                            ),
-                        ],
-                        style={"display": "flex", "align-items": "center"},
+                    html.Img(
+                        src="assets/img/çizgi.png",
+                        style={
+                            "vertical-align": "middle",
+                            "width": "5%",
+                            "padding-left": "3%",
+                            "margin-right": "-4%",
+                        },
                     ),
-                ]
+                    html.P(
+                        ": Tüm yılların ortalama değeri ",
+                        style={
+                            "display": "inline-block",
+                            "margin-left": "10px",
+                            "vertical-align": "middle",
+                            "font-size": "59%",
+                        },
+                    ),
+                    html.Img(
+                        src="assets/img/çizgi2.png",
+                        style={
+                            "vertical-align": "middle",
+                            "width": "11%",
+                            "padding-left": "7%",
+                        },
+                    ),
+                    html.P(
+                        ": Son yılın değeri",
+                        style={
+                            "display": "inline-block",
+                            "vertical-align": "middle",
+                            "font-size": "59%",
+                            "margin-left": "1.5%",
+                        },
+                    ),
+                ],
+                style={"display": "flex", "align-items": "center"},
             ),
         ],
         id="side_clicked_location",
@@ -130,11 +129,7 @@ def make_chart_panel() -> html.Div:
                     html.Tr(
                         [
                             html.Td(
-                                dcc.Graph(
-                                    id="histogram",
-                                    figure={},
-                                    config={"displayModeBar": False},
-                                ),
+                                dcc.Graph(id="histogram", figure={}, config=GRAPH_CONFIG),
                                 style={
                                     "box-shadow": "2px 2px 2px rgba(0,0,0,0.1)",
                                     "outline": "2px solid rgb(0,0,0,0.5)",
@@ -143,11 +138,7 @@ def make_chart_panel() -> html.Div:
                                 colSpan=4,
                             ),
                             html.Td(
-                                dcc.Graph(
-                                    id="pasta",
-                                    figure={},
-                                    config={"displayModeBar": False},
-                                ),
+                                dcc.Graph(id="pasta", figure={}, config=GRAPH_CONFIG),
                                 style={
                                     "box-shadow": "2px 2px 2px rgba(0,0,0,0.1)",
                                     "border-top-right-radius": "12px",
@@ -161,11 +152,7 @@ def make_chart_panel() -> html.Div:
                     html.Tr(
                         [
                             html.Td(
-                                dcc.Graph(
-                                    id="balon",
-                                    figure={},
-                                    config={"displayModeBar": False},
-                                ),
+                                dcc.Graph(id="balon", figure={}, config=GRAPH_CONFIG),
                                 style={
                                     "box-shadow": "2px 2px 2px rgba(0,0,0,0.1)",
                                     "outline": "2px solid rgb(0,0,0,0.5)",
@@ -179,11 +166,7 @@ def make_chart_panel() -> html.Div:
                             html.Div(
                                 [
                                     html.Div(
-                                        dcc.Graph(
-                                            id="cizgikutu",
-                                            figure={},
-                                            config={"displayModeBar": False},
-                                        ),
+                                        dcc.Graph(id="cizgikutu", figure={}, config=GRAPH_CONFIG),
                                         style={
                                             "width": "50%",
                                             "display": "inline-block",
@@ -193,17 +176,8 @@ def make_chart_panel() -> html.Div:
                                             "outline-offset": "1px",
                                         },
                                     ),
-                                    dcc.Interval(
-                                        id="interval-component",
-                                        interval=1 * 2000,
-                                        n_intervals=0,
-                                    ),
                                     html.Div(
-                                        dcc.Graph(
-                                            id="cizgi",
-                                            figure={},
-                                            config={"displayModeBar": False},
-                                        ),
+                                        dcc.Graph(id="cizgi", figure={}, config=GRAPH_CONFIG),
                                         style={
                                             "width": "50%",
                                             "display": "inline-block",
@@ -234,7 +208,7 @@ def make_chart_panel() -> html.Div:
 def make_hover_panel() -> html.Div:
     """Harita hover radar tooltip — başlangıçta gizli."""
     return html.Div(
-        [dcc.Graph(id="gül", figure={}, config={"displayModeBar": False})],
+        [dcc.Graph(id="gül", figure={}, config=GRAPH_CONFIG)],
         id="hovered_location",
         style={
             "display": "none",

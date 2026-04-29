@@ -7,6 +7,22 @@ from __future__ import annotations
 from dash import html
 import dash_mantine_components as dmc
 
+# Filtre butonları — (id, renk). Renk değerleri kasıtlı olarak daha koyu/doygun;
+# veri görselleştirme threshold renkleri (theme.THRESHOLD_COLORS) ile aynı değil.
+_FILTER_BUTTONS = [
+    ("yesilbuton",    "#85e043"),
+    ("sarıbuton",     "#eff229"),
+    ("turuncubutton", "#f2a529"),
+    ("kırmızıbuton",  "#d3382e"),
+]
+
+_FILTER_BTN_BASE_STYLE = {
+    "width": "25%",
+    "height": "100%",
+    "float": "left",
+    "cursor": "pointer",
+}
+
 
 def make_toolbar() -> html.Div:
     """Sabit konumlu alt araç çubuğunu döndürür."""
@@ -81,45 +97,10 @@ def make_toolbar() -> html.Div:
                 html.Div(
                     [
                         html.Div(
-                            id="yesilbuton",
-                            style={
-                                "backgroundColor": "#85e043",
-                                "width": "25%",
-                                "height": "100%",
-                                "float": "left",
-                                "cursor": "pointer",
-                            },
-                        ),
-                        html.Div(
-                            id="sarıbuton",
-                            style={
-                                "backgroundColor": "#eff229",
-                                "width": "25%",
-                                "height": "100%",
-                                "float": "left",
-                                "cursor": "pointer",
-                            },
-                        ),
-                        html.Div(
-                            id="turuncubutton",
-                            style={
-                                "backgroundColor": "#f2a529",
-                                "width": "25%",
-                                "height": "100%",
-                                "float": "left",
-                                "cursor": "pointer",
-                            },
-                        ),
-                        html.Div(
-                            id="kırmızıbuton",
-                            style={
-                                "backgroundColor": "#d3382e",
-                                "width": "25%",
-                                "height": "100%",
-                                "float": "left",
-                                "cursor": "pointer",
-                            },
-                        ),
+                            id=btn_id,
+                            style={**_FILTER_BTN_BASE_STYLE, "backgroundColor": color},
+                        )
+                        for btn_id, color in _FILTER_BUTTONS
                     ],
                     style={
                         "width": "90%",

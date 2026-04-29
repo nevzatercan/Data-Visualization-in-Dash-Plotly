@@ -29,6 +29,7 @@ from dashapp.transforms import colorchoose, filter_total, safe_first
 from dashapp.utils.translations import to_turkish
 from dashapp.layout.stores import make_stores, parse_viewport
 from dashapp.layout.controls import make_toolbar
+from dashapp.theme import DEFAULT_SCALE
 from dashapp.layout.panels import make_side_panel, make_chart_panel, make_hover_panel
 from dashapp.layout.info_modals import make_info_modal1, make_info_modal2
 import dashapp.charts.histogram as _histogram_chart
@@ -44,6 +45,28 @@ import dashapp.charts.radar as _radar_chart
 
 df_air = load_air()
 merged_df = load_merged()
+
+# display_click_data callback'i için statik stil sabitleri (cloud_bg dinamik)
+_CHART_PANEL_STYLE: dict = {
+    'position': 'fixed', 'top': 0, 'right': 0,
+    'margin-top': '6.25%', 'margin-right': '5%',
+    'margin-bottom': '6.25%', 'margin-left': '25%',
+    'width': '70.5%', 'height': '75%',
+    'background-color': 'rgb(255,255,255,0.95)',
+    'z-index': '1000', 'display': 'inline-block',
+    'border-radius': '15px',
+    'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)',
+    'border': '1px solid rgb(135,135,135)',
+}
+_SIDE_PANEL_BASE_STYLE: dict = {
+    'display': 'inline-block',
+    'width': '18%', 'height': '75%',
+    'position': 'fixed', 'margin-top': '5.75%',
+    'margin-bottom': '6.25%', 'margin-left': '5%',
+    'border-radius': '15px',
+    'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)',
+    'border': '1px solid rgb(135,135,135)',
+}
 
 
 # Uygulama düzeni
@@ -76,7 +99,6 @@ app.layout = dmc.MantineProvider(
 
 
 # Filtre buton sabitleri — her buton için (flag, tek-renkli-skala, filtre-fn)
-_DEFAULT_SCALE = [(0, '#b3eb73'), (0.33, '#fbed71'), (0.45, '#efb35d'), (1, '#e86c75')]
 _FILTER_CONFIG = {
     'yesilbuton.n_clicks':    (1, [(0, '#b3eb73'), (1, '#b3eb73')],    lambda df: df[df["FactValueNumeric"] <= 18]),
     'sarıbuton.n_clicks':     (2, [(0, '#fbed71'), (1, '#fbed71')],    lambda df: df[(df["FactValueNumeric"] > 18) & (df["FactValueNumeric"] <= 31)]),
@@ -103,7 +125,7 @@ def update_maps(option_slctd, greenButton_clicks, yellowButton_clicks, orangeBut
     ctx = dash.callback_context
     filtered_df_air = filter_total(df_air, year=option_slctd, dim1='Total', dim1_y=None)
     filteredmerged_df = filter_total(merged_df, year=option_slctd)
-    new_color_scale = _DEFAULT_SCALE
+    new_color_scale = DEFAULT_SCALE
 
     prop_id = ctx.triggered[0]['prop_id']
     if prop_id in _FILTER_CONFIG:
@@ -140,7 +162,7 @@ def update_maps(option_slctd, greenButton_clicks, yellowButton_clicks, orangeBut
         marker=dict(
             size=filteredmerged_df['Percentage of cause-specific deaths out of total deaths'] * 2.5,
             color=filteredmerged_df['NormalizationForPerDeath'],
-            colorscale=_DEFAULT_SCALE,
+            colorscale=DEFAULT_SCALE,
         )
     )
     fig.add_trace(scatter_geo_trace)
@@ -221,8 +243,8 @@ def display_click_data(clickData, n_clicks, option_slctd, vp, panel_data):
         norm_value = safe_first(filtered_df_forcolor['NormalizationForFactValueNumeric'])
         cloud_img, cloud_bg = colorchoose(norm_value)
 
-        style  = {'position': 'fixed', 'top': 0, 'right': 0, 'margin-top': '6.25%', 'margin-right': '5%', 'margin-bottom': '6.25%', 'margin-left': '25%', 'width': '70.5%', 'height': '75%', 'background-color': 'rgb(255,255,255,0.95)', 'z-index': '1000', 'display': 'inline-block', 'border-radius': '15px', 'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)', 'border': '1px solid rgb(135,135,135)'}
-        style2 = {'display': 'inline-block', 'background-color': cloud_bg, 'width': '18%', 'height': '75%', 'position': 'fixed', 'margin-top': '5.75%', 'margin-bottom': '6.25%', 'margin-left': '5%', 'border-radius': '15px', 'box-shadow': '0 8px 16px rgba(0, 0, 0, 0.2)', 'border': '1px solid rgb(135,135,135)'}
+        style  = _CHART_PANEL_STYLE
+        style2 = {**_SIDE_PANEL_BASE_STYLE, 'background-color': cloud_bg}
 
         return (
             style, style2, cloud_img, text,
