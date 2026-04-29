@@ -24,5 +24,8 @@ data/processed/
 # Bayrak SVG'leri (scripts/fetch_flags.py ile yeniden üretilir, ~6.5 MB)
 assets/img/flags/
 
+# Ülke GeoJSON (scripts/fetch_countries_geojson.py ile yeniden üretilir, ~12 MB)
+assets/geojson/
+
 # Dash
 assets/.webassets-cache/
