@@ -18,11 +18,15 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-veya:
+## Veriyi hazırla
+
+Ham CSV'leri Parquet'e çevir (tek seferlik, idempotent):
 
 ```bash
-pip install -r requirements.txt
+python scripts/convert_to_parquet.py
 ```
+
+Çıktı: `data/processed/{death,air,covid}.parquet`. Boyut: 30 MB → ~4.5 MB.
 
 ## Çalıştırma
 
@@ -34,9 +38,9 @@ Tarayıcıda http://localhost:8050 adresini aç.
 
 ## Veri kaynakları
 
-- `death.csv` — DSÖ Solunum yolu hastalıklarına bağlı ölüm verileri
-- `air.csv` — DSÖ PM2.5 hava kalitesi verileri (2010-2019)
-- `covid.csv` — COVID-19 kümülatif ölüm verileri
+- `data/raw/death.csv` — DSÖ Solunum yolu hastalıklarına bağlı ölüm verileri
+- `data/raw/air.csv` — DSÖ PM2.5 hava kalitesi verileri (2010-2019)
+- `data/raw/covid.csv` — COVID-19 kümülatif ölüm verileri
 
 ## Geliştirme
 
@@ -48,4 +52,15 @@ ruff check .
 
 ## Yapı
 
-Proje şu an monolitik tek dosya hâlinde (`app.py`, ~2000 satır). Aşamalı bir modülerleştirme süreci devam ediyor; sonraki commit'lerde `src/dashapp/` altında modüler bir yapıya geçilecek.
+```
+app.py                    # Dash uygulaması (henüz monolitik, küçülüyor)
+src/dashapp/
+  data_loader.py          # Parquet'ten lru_cache'li veri yükleme
+data/
+  raw/*.csv               # Ham veri (versiyon kontrolünde)
+  processed/*.parquet     # Türetilmiş veri (gitignore'da)
+scripts/
+  convert_to_parquet.py   # Tek seferlik dönüşüm
+```
+
+Aşamalı modülerleştirme devam ediyor; sonraki fazlarda `transforms.py`, `charts/`, `callbacks/`, `layout/` modülleri eklenecek.
