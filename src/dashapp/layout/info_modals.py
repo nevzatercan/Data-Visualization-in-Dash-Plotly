@@ -34,10 +34,12 @@ def _build_table_styles() -> list[dict]:
         ]),
     ]:
         for lo, hi, color in ranges:
+            # Dash DataTable filter_query syntax: {column_id} with single braces.
+            # f"{{{col}}}" → literal { + value_of_col + literal } = e.g. {Number}
             fq = (
-                f"{{{{{col}}}}} >= {lo} && {{{{{col}}}}} < {hi}"
+                f"{{{col}}} >= {lo} && {{{col}}} < {hi}"
                 if hi is not None
-                else f"{{{{{col}}}}} >= {lo}"
+                else f"{{{col}}} >= {lo}"
             )
             styles.append({
                 "if": {"column_id": col, "filter_query": fq},
