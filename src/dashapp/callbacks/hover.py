@@ -26,7 +26,12 @@ def register(app: dash.Dash) -> None:
         if hoverData is None:
             return {"display": "none"}, {"data": []}, {"last_iso3": ""}
 
-        location = hoverData["points"][0]["location"]
+        # Choroplethmap hover olayı "location" anahtarı taşır.
+        # Scattermap (lat/lon tabanlı) "skip" ile bastırıldı ama ekstra guard.
+        location = hoverData["points"][0].get("location")
+        if not location:
+            return dash.no_update, dash.no_update, dash.no_update
+
         if location == last_iso3:
             return dash.no_update, dash.no_update, dash.no_update
 
@@ -34,13 +39,19 @@ def register(app: dash.Dash) -> None:
         if fig_dict is None:
             return {"display": "none"}, {"data": []}, {"last_iso3": ""}
 
-        bbox = hoverData["points"][0]["bbox"]
+        bbox = hoverData["points"][0].get("bbox") or {}
         has_data = any(t.get("type") == "barpolar" for t in fig_dict.get("data", []))
+
+        # bbox, Choroplethmap hover olayından gelir; eksikse ekrana sabitlenir.
+        top = f"{bbox['y1'] + 10}px" if "y1" in bbox else "80px"
+        left = f"{bbox['x1'] + 10}px" if "x1" in bbox else "auto"
+        right = "20px" if "x1" not in bbox else "auto"
 
         base = {
             "position": "fixed",
-            "top": f"{bbox['y1'] + 10}px",
-            "left": f"{bbox['x1'] + 10}px",
+            "top": top,
+            "left": left,
+            "right": right,
             "padding": "10px",
             "display": "block",
             "z-index": 9999,

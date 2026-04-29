@@ -1,4 +1,4 @@
-"""Harita callback'i — WebGL Mapbox tabanlı choropleth."""
+"""Harita callback'i — MapLibre tabanlı choropleth (Plotly 6+)."""
 from __future__ import annotations
 
 import dash
@@ -22,8 +22,8 @@ _FILTER_CONFIG = {
     "kırmızıbuton.n_clicks":  (4, [(0, THRESHOLD_COLORS["red"]),    (1, THRESHOLD_COLORS["red"])],    lambda df: df[df["FactValueNumeric"] > 48]),
 }
 
-# Mapbox carto-darkmatter: ücretsiz, token gerektirmez.
-_MAPBOX_STYLE = "carto-darkmatter"
+# Ücretsiz, token gerektirmez.
+_MAP_STYLE = "carto-darkmatter"
 _MAP_CENTER = {"lat": 25, "lon": 10}
 _MAP_ZOOM = 1.4
 
@@ -63,7 +63,7 @@ def register(app: dash.Dash) -> None:
                 isFiltered = 0
 
         # ── Choropleth (PM2.5 seviyesi renk dolgusu) ─────────────────────────
-        fig = go.Figure(go.Choroplethmapbox(
+        fig = go.Figure(go.Choroplethmap(
             geojson=_GEOJSON_URL,
             featureidkey="properties.ISO3166-1-Alpha-3",
             locations=filtered_df_air["SpatialDimValueCode"],
@@ -77,7 +77,10 @@ def register(app: dash.Dash) -> None:
             below="",
         ))
 
-        # ── Scatter baloncukları (ölüm oranı) ────────────────────────────────
+        # ── Scatter baloncukları (ölüm oranı) ─────────────────────────────────
+        # hoverinfo="skip": Scattermap lat/lon tabanlıdır, hoverData'da "location"
+        # anahtarı bulunmaz. "skip" ile hover event tamamen bastırılır;
+        # sadece Choroplethmap'tan gelen hover event işlenir.
         lats: list[float] = []
         lons: list[float] = []
         sizes: list[float] = []
@@ -96,25 +99,25 @@ def register(app: dash.Dash) -> None:
             sizes.append(max(3.0, float(perc) * 2.5))
             colors.append(float(norm))
 
-        fig.add_trace(go.Scattermapbox(
+        fig.add_trace(go.Scattermap(
             lat=lats,
             lon=lons,
             mode="markers",
-            marker=go.scattermapbox.Marker(
+            marker=go.scattermap.Marker(
                 size=sizes,
                 color=colors,
                 colorscale=DEFAULT_SCALE,
                 opacity=0.65,
                 sizemin=3,
             ),
-            hoverinfo="none",
+            hoverinfo="skip",   # lat/lon tabanlı — "location" anahtarı yok, hover bastırılır
             showlegend=False,
         ))
 
         # ── Layout ───────────────────────────────────────────────────────────
         fig.update_layout(
-            mapbox=dict(
-                style=_MAPBOX_STYLE,
+            map=dict(
+                style=_MAP_STYLE,
                 center=_MAP_CENTER,
                 zoom=_MAP_ZOOM,
             ),
