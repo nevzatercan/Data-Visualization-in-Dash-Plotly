@@ -6,21 +6,24 @@ Created on Sat May  4 05:27:29 2024
 @author: nevzatercan
 """
 
-import pandas as pd
-import plotly.express as px
-from dash import Dash,dash_table, dcc, html, Input, Output
-import plotly.graph_objects as go
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
-from dash.dependencies import ClientsideFunction, Input, Output, State
-import plotly.express as px
-from ipywidgets import widgets
+import random
 
-import urllib.request, json,webbrowser,requests,random
+import dash
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import requests
+from dash import (
+    ClientsideFunction,
+    Dash,
+    Input,
+    Output,
+    State,
+    dash_table,
+    dcc,
+    html,
+)
 from googletrans import Translator
 
 app = dash.Dash(__name__)
@@ -29,15 +32,16 @@ app.config.suppress_callback_exceptions = True
 
 
 # Veri setlerini yükleme
-df_death = pd.read_csv('death.csv', header=6, on_bad_lines='skip', sep=';')
-df_air = pd.read_csv('air.csv', header=0, sep=',')
-df_covid = pd.read_csv('covid.csv', header=0, sep=',')
+df_death = pd.read_csv('death.csv', header=6, sep=';', encoding='utf-8', on_bad_lines='warn')
+df_air = pd.read_csv('air.csv', header=0, sep=',', encoding='utf-8')
+df_covid = pd.read_csv('covid.csv', header=0, sep=',', encoding='utf-8')
 df_death['Percentage of cause-specific deaths out of total deaths'] = df_death['Percentage of cause-specific deaths out of total deaths'].astype(float)
 df_air['FactValueNumeric'] = df_air['FactValueNumeric'].astype(float)
 
-# Verileri düzeltilecek ülkeler
+# Veride bozuk gelen ülke isimlerini düzelt (kaynaktaki ASCII '?' karakterleri)
 df_death.loc[df_death['Country Code'] == 'TUR', 'Region Name'] = 'Europe'
 df_death.loc[df_death['Country Name'] == 'T?rkiye', 'Country Name'] = 'Türkiye'
+df_death.loc[df_death['Country Name'] == 'R?union', 'Country Name'] = 'Réunion'
 
 # air'de olan, death'te olmayan ülkelerin listesi
 eksik_ülkeler_cod = df_air[~df_air['SpatialDimValueCode'].isin(df_death['Country Code'])]['SpatialDimValueCode'].unique()
@@ -81,15 +85,8 @@ df_death = pd.concat([df_death, df_missing], ignore_index=True)
 df_death = pd.concat([df_death, df_missing2], ignore_index=True)
 
 
-# 4 rakamı almak
-def first_four_digits(x):
-    if pd.notnull(x):
-        return str(x)[:4]
-    else:
-        return ""
-    
-df_death['Percentage of cause-specific deaths out of total deaths'] = df_death['Percentage of cause-specific deaths out of total deaths'].apply(first_four_digits)
-df_air['FactValueNumeric'] = df_air['FactValueNumeric'].apply(first_four_digits)
+df_death['Percentage of cause-specific deaths out of total deaths'] = df_death['Percentage of cause-specific deaths out of total deaths'].astype(float).round(4)
+df_air['FactValueNumeric'] = df_air['FactValueNumeric'].astype(float).round(4)
 
 # df leri birleştirme
 merged_df = pd.merge(df_death, df_air, left_on=['Country Code', 'Year'], right_on=['SpatialDimValueCode',  'Period'], how='inner')
@@ -141,31 +138,23 @@ df_air['NormalizationForFactValueNumeric'] = (df_air['FactValueNumeric'] - df_ai
 # Yaş ve Cinsiyete Göre df oluşturma
 sexallexitmerged_df = merged_df.copy()
 sexallexitmerged_df = merged_df[~merged_df['Sex'].isin(['Unknown', 'All'])]
-sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[0]', 'Age Group'] = '[0-49]'
+# [0] dahil 11 gençlik yaş grubunun (ülke, yıl, cinsiyet) bazında NormalizationForPerDeath
+# ortalamasını [0-49] olarak yeniden adlandırılan satıra yaz; alt grupları sil.
+_young_groups = ['[0]', '[1-4]', '[5-9]', '[10-14]', '[15-19]',
+                 '[20-24]', '[25-29]', '[30-34]', '[35-39]',
+                 '[40-44]', '[45-49]']
+_keys = ['Country Code', 'Year', 'Sex']
+_young_mean = (sexallexitmerged_df[sexallexitmerged_df['Age Group'].isin(_young_groups)]
+               .groupby(_keys, observed=True)['NormalizationForPerDeath']
+               .mean()
+               .rename('_young_mean'))
 
-# 50 yaş ve öncesini tek grupta toplamak için yapılması gereken işlemler
-sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[0-49]', 'NormalizationForPerDeath'] = (sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[0-49]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[1-4]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[5-9]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[10-14]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[15-19]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[20-24]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[25-29]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[30-34]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[35-39]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[40-44]', 'NormalizationForPerDeath'].values + \
-    sexallexitmerged_df.loc[sexallexitmerged_df['Age Group'] == '[45-49]', 'NormalizationForPerDeath'].values ) /10
+_zero_mask = sexallexitmerged_df['Age Group'] == '[0]'
+_zero_rows = sexallexitmerged_df.loc[_zero_mask].merge(_young_mean, on=_keys, how='left')
+sexallexitmerged_df.loc[_zero_mask, 'NormalizationForPerDeath'] = _zero_rows['_young_mean'].values
+sexallexitmerged_df.loc[_zero_mask, 'Age Group'] = '[0-49]'
 
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[1-4]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[5-9]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[10-14]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[15-19]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[20-24]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[25-29]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[30-34]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[35-39]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[40-44]'].index)
-sexallexitmerged_df = sexallexitmerged_df.drop(sexallexitmerged_df[sexallexitmerged_df['Age Group'] == '[45-49]'].index)
+sexallexitmerged_df = sexallexitmerged_df[~sexallexitmerged_df['Age Group'].isin(_young_groups[1:])]
 
 # Age için sonrasında filtrelemede gerekli kısımlar
 age_group_unique = sexallexitmerged_df['Age Group'].unique()
@@ -982,7 +971,7 @@ def cizgikutu(clickData):
     country_numbers = df_covid[df_covid['Name'] == country_name_english]['Deaths - cumulative total']
     country_numbers = country_numbers.astype(int)
     if country_numbers.empty:
-        country_numbers = pd.Series([0]).append(country_numbers, ignore_index=True)
+        country_numbers = pd.concat([pd.Series([0]), country_numbers], ignore_index=True)
 
 
     first_matching_year = None 
@@ -1546,7 +1535,7 @@ def kursun(clickData):
         max_yeareksi=max_year
     
     mean_valueFactValue = filtered_selected_df[(filtered_selected_df["Year"]>=2010) & (filtered_selected_df["Dim1_y"]=="Total")]['FactValueNumeric'].mean()
-    mean_valuePerc = filtered_selected_df[(filtered_selected_df["Year"]>=2010) & (filtered_selected_df["Dim1_y"]=="Total")]['Percentage of cause-specific deaths out of total deaths'].values[0].mean()
+    mean_valuePerc = filtered_selected_df[(filtered_selected_df["Year"]>=2010) & (filtered_selected_df["Dim1_y"]=="Total")]['Percentage of cause-specific deaths out of total deaths'].mean()
     mean_valuePop = filtered_selected_df[(filtered_selected_df["Year"] >= 2010) & (filtered_selected_df["Year"] <= max_year) & (filtered_selected_df["Dim1_y"] == "Total")]['Death rate per 100 000 population'].mean()
 
     fig = go.Figure()
