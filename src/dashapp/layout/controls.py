@@ -167,7 +167,7 @@ def make_toolbar() -> html.Div:
         # ── Outer positioning wrapper ────────────────────────────────────────
         style={
             "position": "fixed",
-            "bottom": "20px",
+            "bottom": "48px",   # Dash debug bar (~32px) + nefes boşluğu
             "left": "50%",
             "transform": "translateX(-50%)",
             "width": "calc(100% - 40px)",
