@@ -1,0 +1,53 @@
+"""Hover callback'i — fare harita üzerindeyken radar grafiği gösterilir."""
+from __future__ import annotations
+
+import dash
+from dash import Input, Output, State
+
+import dashapp.charts.radar as _radar_chart
+from dashapp.layout.stores import parse_viewport
+
+
+def register(app: dash.Dash) -> None:
+
+    @app.callback(
+        [Output("hovered_location", "style"),
+         Output("gül", "figure"),
+         Output("hover-store", "data")],
+        [Input("Harita", "hoverData"),
+         Input("secilenyıl", "value")],
+        [State("viewport-store", "data"),
+         State("hover-store", "data")],
+    )
+    def display_hover_data(hoverData, option_slctd, vp, hover_data):
+        width, height = parse_viewport(vp)
+        last_iso3 = (hover_data or {}).get("last_iso3", "")
+
+        if hoverData is None:
+            return {"display": "none"}, {"data": []}, {"last_iso3": ""}
+
+        location = hoverData["points"][0]["location"]
+        if location == last_iso3:
+            return dash.no_update, dash.no_update, dash.no_update
+
+        fig_dict = _radar_chart.figure(location, option_slctd, width=width, height=height)
+        if fig_dict is None:
+            return {"display": "none"}, {"data": []}, {"last_iso3": ""}
+
+        bbox = hoverData["points"][0]["bbox"]
+        has_data = any(t.get("type") == "barpolar" for t in fig_dict.get("data", []))
+
+        base = {
+            "position": "fixed",
+            "top": f"{bbox['y1'] + 10}px",
+            "left": f"{bbox['x1'] + 10}px",
+            "padding": "10px",
+            "display": "block",
+            "z-index": 9999,
+        }
+        style = (
+            {**base, "background-color": "transparent", "width": "20%", "height": "250px"}
+            if has_data
+            else {**base, "border": "1px solid black", "background-color": "white"}
+        )
+        return style, fig_dict, {"last_iso3": location}
