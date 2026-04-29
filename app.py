@@ -31,153 +31,35 @@ app = dash.Dash(__name__)
 app.config.suppress_callback_exceptions = True
 
 
-# Veri setlerini yükleme
-df_death = pd.read_csv('death.csv', header=6, sep=';', encoding='utf-8', on_bad_lines='warn')
-df_air = pd.read_csv('air.csv', header=0, sep=',', encoding='utf-8')
-df_covid = pd.read_csv('covid.csv', header=0, sep=',', encoding='utf-8')
-df_death['Percentage of cause-specific deaths out of total deaths'] = df_death['Percentage of cause-specific deaths out of total deaths'].astype(float)
-df_air['FactValueNumeric'] = df_air['FactValueNumeric'].astype(float)
+from dashapp.data_loader import (
+    load_air,
+    load_covid,
+    load_death,
+    load_merged,
+    load_sex_age_breakdown,
+    world_radar_means,
+    world_residence_means,
+)
 
-# Veride bozuk gelen ülke isimlerini düzelt (kaynaktaki ASCII '?' karakterleri)
-df_death.loc[df_death['Country Code'] == 'TUR', 'Region Name'] = 'Europe'
-df_death.loc[df_death['Country Name'] == 'T?rkiye', 'Country Name'] = 'Türkiye'
-df_death.loc[df_death['Country Name'] == 'R?union', 'Country Name'] = 'Réunion'
+df_air = load_air()
+df_death = load_death()
+df_covid = load_covid()
+merged_df = load_merged()
+sexallexitmerged_df = load_sex_age_breakdown()
 
-# air'de olan, death'te olmayan ülkelerin listesi
-eksik_ülkeler_cod = df_air[~df_air['SpatialDimValueCode'].isin(df_death['Country Code'])]['SpatialDimValueCode'].unique()
-eksik_ülkeler_name = df_air[~df_air['Location'].isin(df_death['Country Name'])]['Location'].unique()
-
-# Death'te olmayan ülkeleri ekleyerek eksik yılları ve değerleri doldurma
-# Boş liste oluştur
-eksik_veriler_cod = []
-
-# df_air'deki ülke kodları ve isimlerinden oluşan bir sözlük oluştur
-country_code_name_map = dict(zip(df_air['SpatialDimValueCode'], df_air['Location']))
-
-for ülke_kodu in eksik_ülkeler_cod:
-    # Ülke kodunu adıyla eşleştir
-    ülke_adı = country_code_name_map.get(ülke_kodu, 'Unknown')
-
-    # 2010-2019 yılları arasında eksik verileri oluştur
-    for year in range(2010, 2020):
-        eksik_veriler_cod.append({
-            'Country Code': ülke_kodu,
-            'Country Name': ülke_adı,  # Ülke adını da ekleyin
-            'Year': year,
-            'Dim1': 'Total',
-            'Age Group': '[All]',
-            'Sex': 'All',
-            'Number': 0,
-            'Percentage of cause-specific deaths out of total deaths': 0
-        })
-
-eksik_veriler_name = []
-for ülke in eksik_ülkeler_name:  # Değişken adını eksik_ülkeler_name olarak değiştirdim.
-    for year in range(2010, 2020):
-        eksik_veriler_name.append({'Country Name': ülke, 'Year': year, 'Dim1': 'Total', 'Age Group': '[All]', 'Sex': 'All', 'Number': 0, 'Percentage of cause-specific deaths out of total deaths': 0})
-        
-# Yeni veri çerçevesini oluşturma
-df_missing = pd.DataFrame(eksik_veriler_cod)
-df_missing2 = pd.DataFrame(eksik_veriler_name)
-
-# Eksik verileri df_death'ten alarak doldurma
-df_death = pd.concat([df_death, df_missing], ignore_index=True)
-df_death = pd.concat([df_death, df_missing2], ignore_index=True)
-
-
-df_death['Percentage of cause-specific deaths out of total deaths'] = df_death['Percentage of cause-specific deaths out of total deaths'].astype(float).round(4)
-df_air['FactValueNumeric'] = df_air['FactValueNumeric'].astype(float).round(4)
-
-# df leri birleştirme
-merged_df = pd.merge(df_death, df_air, left_on=['Country Code', 'Year'], right_on=['SpatialDimValueCode',  'Period'], how='inner')
-# merged_df.fillna(0, inplace=True)
-# merged_df['Percentage of cause-specific deaths out of total deaths'] = merged_df['Percentage of cause-specific deaths out of total deaths'].replace('', '0').astype(float)
-# merged_df['FactValueNumeric'] = merged_df['FactValueNumeric'].replace('', '0').astype(float)
-
-# merged_df['Percentage of cause-specific deaths out of total deaths'] = merged_df['Percentage of cause-specific deaths out of total deaths'].astype(float)
-# merged_df['FactValueNumeric'] = merged_df['FactValueNumeric'].astype(float)
-
-# Boş veya geçersiz değerleri temizleme
-df_air.dropna(subset=['FactValueNumeric'], inplace=True)
-merged_df.dropna(subset=['Percentage of cause-specific deaths out of total deaths'], inplace=True)
-merged_df.dropna(subset=['FactValueNumeric'], inplace=True)
-
-# String değerleri sayısal değerlere dönüştürme
-merged_df['Percentage of cause-specific deaths out of total deaths'] = pd.to_numeric(merged_df['Percentage of cause-specific deaths out of total deaths'], errors='coerce')
-merged_df['FactValueNumeric'] = pd.to_numeric(merged_df['FactValueNumeric'], errors='coerce')
-df_air = df_air[pd.to_numeric(df_air['FactValueNumeric'], errors='coerce').notna()]
-df_air['FactValueNumeric'] = pd.to_numeric(df_air['FactValueNumeric'], errors='coerce')
-
-
-# Gereksiz Veri Temizleme
-sutunlar_cikarilacak = ['IndicatorCode', 'ValueType', 'Location type', 'Period type', 'IsLatestYear', 'Dim1 type', 'Dim1ValueCode', 'Dim2 type', 'Dim2', 'Dim2ValueCode', 'Dim3', 'DataSourceDimValueCode', 'Dim3ValueCode', 'DataSource', 'FactValueUoM', 'FactValueNumericLowPrefix', 'FactValueNumericHighPrefix', 'FactValueTranslationID', 'FactComments', 'Language', 'DateModified','Dim3 type','Indicator','ParentLocationCode','ParentLocation','SpatialDimValueCode','Location','Period','FactValueNumericPrefix']
-merged_df = merged_df.drop(columns=sutunlar_cikarilacak)
-merged_df = merged_df[~merged_df['Age Group'].isin(['[Unknown]'])]
-
-# Number sütununu normalleştirme
-merged_df['NormalizationForNumber'] = (merged_df['Number'] - merged_df['Number'].min()) / (merged_df['Number'].max() - merged_df['Number'].min())
-
-# Percentage of cause-specific deaths out of total deaths sütununu normalleştirme
-merged_df['NormalizationForPerDeath'] = (merged_df['Percentage of cause-specific deaths out of total deaths'] - merged_df['Percentage of cause-specific deaths out of total deaths'].min()) / (merged_df['Percentage of cause-specific deaths out of total deaths'].max() - merged_df['Percentage of cause-specific deaths out of total deaths'].min())
-
-# Age-standardized death rate per 100 000 standard population sütununu normalleştirme
-merged_df['NormalizationForAgeStandardizedDeathRate'] = (merged_df['Age-standardized death rate per 100 000 standard population'] - merged_df['Age-standardized death rate per 100 000 standard population'].min()) / (merged_df['Age-standardized death rate per 100 000 standard population'].max() - merged_df['Age-standardized death rate per 100 000 standard population'].min())
-
-# FactValueNumericLow sütununu normalleştirme
-merged_df['NormalizationForFactValueNumericLow'] = (merged_df['FactValueNumericLow'] - merged_df['FactValueNumericLow'].min()) / (merged_df['FactValueNumericLow'].max() - merged_df['FactValueNumericLow'].min())
-
-# FactValueNumericHigh sütununu normalleştirme
-merged_df['NormalizationForFactValueNumericHigh'] = (merged_df['FactValueNumericHigh'] - merged_df['FactValueNumericHigh'].min()) / (merged_df['FactValueNumericHigh'].max() - merged_df['FactValueNumericHigh'].min())
-
-# FactValueNumeric sütununu normalleştirme
-merged_df['NormalizationForFactValueNumeric'] = (merged_df['FactValueNumeric'] - merged_df['FactValueNumeric'].min()) / (merged_df['FactValueNumeric'].max() - merged_df['FactValueNumeric'].min())
-
-# FactValueNumeric ama df air için normalize etme 
-df_air['NormalizationForFactValueNumeric'] = (df_air['FactValueNumeric'] - df_air['FactValueNumeric'].min()) / (df_air['FactValueNumeric'].max() - df_air['FactValueNumeric'].min())
-
-# Yaş ve Cinsiyete Göre df oluşturma
-sexallexitmerged_df = merged_df.copy()
-sexallexitmerged_df = merged_df[~merged_df['Sex'].isin(['Unknown', 'All'])]
-# [0] dahil 11 gençlik yaş grubunun (ülke, yıl, cinsiyet) bazında NormalizationForPerDeath
-# ortalamasını [0-49] olarak yeniden adlandırılan satıra yaz; alt grupları sil.
-_young_groups = ['[0]', '[1-4]', '[5-9]', '[10-14]', '[15-19]',
-                 '[20-24]', '[25-29]', '[30-34]', '[35-39]',
-                 '[40-44]', '[45-49]']
-_keys = ['Country Code', 'Year', 'Sex']
-_young_mean = (sexallexitmerged_df[sexallexitmerged_df['Age Group'].isin(_young_groups)]
-               .groupby(_keys, observed=True)['NormalizationForPerDeath']
-               .mean()
-               .rename('_young_mean'))
-
-_zero_mask = sexallexitmerged_df['Age Group'] == '[0]'
-_zero_rows = sexallexitmerged_df.loc[_zero_mask].merge(_young_mean, on=_keys, how='left')
-sexallexitmerged_df.loc[_zero_mask, 'NormalizationForPerDeath'] = _zero_rows['_young_mean'].values
-sexallexitmerged_df.loc[_zero_mask, 'Age Group'] = '[0-49]'
-
-sexallexitmerged_df = sexallexitmerged_df[~sexallexitmerged_df['Age Group'].isin(_young_groups[1:])]
-
-# Age için sonrasında filtrelemede gerekli kısımlar
 age_group_unique = sexallexitmerged_df['Age Group'].unique()
-age_group_unique = np.roll(age_group_unique, -1)  # Diziyi bir birim sola kaydırır
+age_group_unique = np.roll(age_group_unique, -1)
 age_sex_group_averages = sexallexitmerged_df.groupby(['Age Group', 'Sex'])['NormalizationForPerDeath'].mean()
 
-# RadarWorld dizilerini oluşturma
-RadarWorld = np.empty(5)
+RadarWorld = world_radar_means()
 RadarWorldForCountry = np.zeros(5)
 
-# RadarWorld sütunlarının ortalamasını almak (Tek Sefer Yeterli)
-RadarWorld[0] = merged_df['NormalizationForNumber'].mean() * 10
-RadarWorld[1] = merged_df['NormalizationForPerDeath'].mean()
-RadarWorld[2] = merged_df['NormalizationForAgeStandardizedDeathRate'].mean()
-RadarWorld[3] = merged_df['NormalizationForFactValueNumericLow'].mean()
-RadarWorld[4] = merged_df['NormalizationForFactValueNumericHigh'].mean()
-
-############ all cities mean 
-cities_meanworld = merged_df[(merged_df['Dim1_y'] == 'Cities') & (merged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-rural_meanworld = merged_df[(merged_df['Dim1_y'] == 'Rural') & (merged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-towns_meanworld = merged_df[(merged_df['Dim1_y'] == 'Towns') & (merged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-urban_meanworld = merged_df[(merged_df['Dim1_y'] == 'Urban') & (merged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
-total_meanworld = merged_df[(merged_df['Dim1_y'] == 'Total') & (merged_df['Age group code'] == 'Age_all')]['FactValueNumeric'].mean()
+_residence = world_residence_means()
+cities_meanworld = _residence['Cities']
+rural_meanworld = _residence['Rural']
+towns_meanworld = _residence['Towns']
+urban_meanworld = _residence['Urban']
+total_meanworld = _residence['Total']
 all_meansworld = [cities_meanworld, towns_meanworld, urban_meanworld, rural_meanworld]
 
 
@@ -1864,20 +1746,11 @@ def toggle_info_div(close_clicks,close_clicks2, info_clicks, info_clicks2):
 def sunburst():
     
     new_color_scale = [
-            (0, '#b3eb73'),
-            (0.5, '#fbed71'),
-            (0.55, '#efb35d'),
-            (1, '#e86c75')     ]    
-
-    df_air['NormalizationForFactValueNumeric'] = pd.to_numeric(df_air['NormalizationForFactValueNumeric'], errors='coerce')
-    
-    df_air.loc[df_air["ParentLocation"] == "Africa", "ParentLocation"] = "Afrika"
-    df_air.loc[df_air["ParentLocation"] == "South-East Asia", "ParentLocation"] = "Güney Doğu Asya"
-    df_air.loc[df_air["ParentLocation"] == "Europe", "ParentLocation"] = "Avrupa"
-    df_air.loc[df_air["ParentLocation"] == "Americas", "ParentLocation"] = "Amerika"
-    df_air.loc[df_air["ParentLocation"] == "Eastern Mediterranean", "ParentLocation"] = "Ortadoğu"
-    df_air.loc[df_air["ParentLocation"] == "Western Pacific", "ParentLocation"] = "Batı Pasifik"
-    
+        (0, '#b3eb73'),
+        (0.5, '#fbed71'),
+        (0.55, '#efb35d'),
+        (1, '#e86c75'),
+    ]
 
 
     fig = px.sunburst(df_air, path=['ParentLocation', 'Location'], values='NormalizationForFactValueNumeric',
