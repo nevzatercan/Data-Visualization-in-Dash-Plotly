@@ -197,11 +197,23 @@ def world_radar_means() -> np.ndarray:
 
 @lru_cache(maxsize=1)
 def load_table_data() -> pd.DataFrame:
-    """DataTable için hazırlanmış birleşik tablo (Total filtreli, gereksiz sütunlar çıkarılmış)."""
+    """DataTable için hazırlanmış birleşik tablo.
+
+    Filtreler:
+    - Dim1_y == "Total" (yerleşim tipi toplam)
+    - Sex == "All" + Age Group == "[All]" (tüm nüfus özeti)
+
+    Satır sayısı ~56 K → ~1.7 K'ya düşer; her ülke-yıl çifti tek satır.
+    """
     df = load_merged()
-    df = df[df["Dim1_y"] == "Total"].copy()
+    df = df[
+        (df["Dim1_y"] == "Total")
+        & (df["Sex"] == "All")
+        & (df["Age Group"] == "[All]")
+    ].copy()
     df["Year"] = df["Year"].astype(int)
-    return df.drop(columns=["Dim1_y", "Dim1_x", "Value"], errors="ignore")
+    return df.drop(columns=["Dim1_y", "Dim1_x", "Value", "Sex", "Age Group",
+                             "Age group code"], errors="ignore")
 
 
 @lru_cache(maxsize=1)

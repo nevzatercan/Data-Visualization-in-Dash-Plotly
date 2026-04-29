@@ -212,59 +212,151 @@ def make_info_modal1() -> dmc.Modal:
 # Modal 2 — Veri tablosu
 # ---------------------------------------------------------------------------
 
-def make_info_modal2() -> dmc.Modal:
-    """Veri tablosu modali (eski info_div2)."""
-    df = load_table_data()
-    columns = [{"name": c, "id": c} for c in df.columns]
-    data = df.to_dict("records")
+# Gösterilecek sütunlar: DataFrame sütun adı → Türkçe ekran adı.
+# Normalizasyon sütunları kasıtlı olarak hariç bırakıldı.
+_TABLE_COLS: dict[str, str] = {
+    "Country Code":                                              "Kod",
+    "Country Name":                                              "Ülke",
+    "Region Name":                                               "Bölge",
+    "Year":                                                      "Yıl",
+    "Number":                                                    "Ölüm Sayısı",
+    "Percentage of cause-specific deaths out of total deaths":   "Ölüm %",
+    "Death rate per 100 000 population":                         "100K'da Ölüm",
+    "FactValueNumeric":                                          "PM2.5",
+    "FactValueNumericLow":                                       "PM2.5 Alt",
+    "FactValueNumericHigh":                                      "PM2.5 Üst",
+}
 
+
+def _table_columns() -> list[dict]:
+    return [{"name": display, "id": col_id} for col_id, display in _TABLE_COLS.items()]
+
+
+def _table_data() -> list[dict]:
+    """1.7 K satırlık tablo verisini döndürür; NaN → None (geçerli JSON).
+
+    Notes
+    -----
+    pandas float sütunlarda ``where(notna, None)`` NaN'ı geri koyar.
+    Güvenilir yol: ``to_dict`` sonrası satır bazlı döngüyle replace etmek.
+    """
+    import math
+
+    df = load_table_data()
+    cols = [c for c in _TABLE_COLS if c in df.columns]
+    subset = df[cols].copy()
+
+    float_cols = subset.select_dtypes("float").columns
+    subset[float_cols] = subset[float_cols].round(2)
+
+    records = subset.to_dict("records")
+    # pandas NaN → None (float NaN geçerli JSON değil)
+    for row in records:
+        for key, val in row.items():
+            if isinstance(val, float) and math.isnan(val):
+                row[key] = None
+    return records
+
+
+def make_info_modal2() -> dmc.Modal:
+    """Veri tablosu modali — ülke×yıl düzeyinde PM2.5 + ölüm özet tablosu."""
     content = html.Div(
         [
+            # ── Başlık satırı ──────────────────────────────────────────────────
             html.Div(
-                id="closeButton3",
-                n_clicks=0,
-                children="×",
+                [
+                    html.Span(
+                        "PM2.5 ve Solunum Yolu Hastalıklarına Bağlı Ölüm Verileri",
+                        style={
+                            "color": "rgba(241, 245, 249, 0.90)",
+                            "fontSize": "14px",
+                            "fontWeight": "700",
+                            "letterSpacing": "0.5px",
+                        },
+                    ),
+                    html.Div(
+                        id="closeButton3",
+                        n_clicks=0,
+                        children="×",
+                        style={
+                            "fontSize": "24px",
+                            "lineHeight": "1",
+                            "color": "rgba(148,163,184,0.75)",
+                            "cursor": "pointer",
+                            "width": "30px",
+                            "height": "30px",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                            "borderRadius": "8px",
+                            "background": "rgba(255,255,255,0.05)",
+                            "border": "1px solid rgba(56,130,246,0.18)",
+                            "flexShrink": 0,
+                        },
+                    ),
+                ],
                 style={
-                    "position": "absolute",
-                    "top": "12px",
-                    "right": "18px",
-                    "fontSize": "26px",
-                    "lineHeight": "1",
-                    "color": "rgba(148,163,184,0.80)",
-                    "cursor": "pointer",
-                    "zIndex": 9999,
-                    "width": "32px",
-                    "height": "32px",
                     "display": "flex",
+                    "justifyContent": "space-between",
                     "alignItems": "center",
-                    "justifyContent": "center",
-                    "borderRadius": "8px",
-                    "background": "rgba(255,255,255,0.06)",
-                    "border": "1px solid rgba(56,130,246,0.18)",
+                    "padding": "14px 18px 10px",
+                    "borderBottom": "1px solid rgba(56,130,246,0.14)",
                 },
             ),
-            html.P(
-                "PM2.5 ve SOLUNUM YOLU HASTALIKLARINA BAĞLI ÖLÜM VERİLERİ TABLOSU",
-                style={"color": "white", "margin-left": "27%", "font-size": "110%"},
-            ),
-            dash_table.DataTable(
-                id="table",
-                columns=columns,
-                data=data,
-                style_cell={"textAlign": "left"},
-                style_header={"backgroundColor": "paleturquoise"},
-                style_data={"backgroundColor": "lavender"},
-                style_data_conditional=_build_table_styles(),
-                sort_action="native",
-                filter_action="native",
-                style_table={
-                    "overflowX": "auto",
-                    "height": "100%",
-                    "width": "100%",
-                },
+            # ── DataTable ──────────────────────────────────────────────────────
+            html.Div(
+                dash_table.DataTable(
+                    id="table",
+                    columns=_table_columns(),
+                    data=_table_data(),
+                    sort_action="native",
+                    filter_action="native",
+                    page_action="native",
+                    page_size=50,
+                    style_table={
+                        "overflowX": "auto",
+                        "overflowY": "auto",
+                        "maxHeight": "calc(80vh - 64px)",
+                        "minWidth": "100%",
+                    },
+                    style_cell={
+                        "textAlign": "left",
+                        "backgroundColor": "rgba(7, 11, 20, 0.95)",
+                        "color": "rgba(241, 245, 249, 0.82)",
+                        "border": "1px solid rgba(56, 130, 246, 0.10)",
+                        "padding": "6px 10px",
+                        "fontSize": "12px",
+                        "fontFamily": "'Inter', 'Segoe UI', sans-serif",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden",
+                        "textOverflow": "ellipsis",
+                        "maxWidth": "200px",
+                    },
+                    style_header={
+                        "backgroundColor": "rgba(56, 130, 246, 0.18)",
+                        "color": "rgba(241, 245, 249, 0.95)",
+                        "fontWeight": "700",
+                        "border": "1px solid rgba(56, 130, 246, 0.25)",
+                        "fontSize": "11px",
+                        "letterSpacing": "0.5px",
+                        "padding": "8px 10px",
+                    },
+                    style_filter={
+                        "backgroundColor": "rgba(10, 18, 36, 0.80)",
+                        "color": "rgba(148, 163, 184, 0.90)",
+                        "border": "1px solid rgba(56, 130, 246, 0.18)",
+                    },
+                    style_data_conditional=_build_table_styles(),
+                ),
+                style={"flex": 1, "overflow": "hidden"},
             ),
         ],
-        style={"position": "relative", "height": "80vh"},
+        style={
+            "display": "flex",
+            "flexDirection": "column",
+            "height": "80vh",
+            "overflow": "hidden",
+        },
     )
 
     return dmc.Modal(
@@ -278,12 +370,12 @@ def make_info_modal2() -> dmc.Modal:
             "body": {
                 "padding": "0",
                 "height": "80vh",
-                "overflow": "scroll",
-                "background-color": "rgba(0,0,0,0.8)",
+                "overflow": "hidden",
             },
             "content": {
-                "background-color": "rgba(0,0,0,0.8)",
-                "border": "5px solid white",
+                "background": "rgba(7, 11, 20, 0.97)",
+                "border": "1px solid rgba(56, 130, 246, 0.22)",
+                "borderRadius": "16px",
             },
         },
     )
