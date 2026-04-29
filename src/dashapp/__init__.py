@@ -4,9 +4,15 @@
 """
 from __future__ import annotations
 
+import os
 import dash
 import dash_mantine_components as dmc
 from dash import dcc, html
+
+# src/dashapp/__init__.py → ../../assets = proje kökü/assets
+_ASSETS_FOLDER = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "assets")
+)
 
 from dashapp.callbacks import register_callbacks
 from dashapp.layout.controls import make_toolbar
@@ -21,7 +27,7 @@ _HARITA_CONFIG: dict = {**GRAPH_CONFIG, "scrollZoom": False}
 
 def create_app() -> dash.Dash:
     """Dash uygulamasını oluştur, layout'u kur, callback'leri kaydet ve döndür."""
-    app = dash.Dash(__name__)
+    app = dash.Dash(__name__, assets_folder=_ASSETS_FOLDER)
     app.config.suppress_callback_exceptions = True
 
     app.layout = dmc.MantineProvider(
