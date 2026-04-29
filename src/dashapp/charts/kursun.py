@@ -57,15 +57,15 @@ def figure(
         domain={"x": [0.25, 1], "y": [0.13, 0.3]},
         gauge={
             "shape": "bullet",
-            "axis": {"tickangle": 0, "tickwidth": 0.2, "tickfont": dict(size=8, color="black"), "range": [0, 65]},
+            "axis": {"tickangle": 0, "tickwidth": 0.2, "tickfont": dict(size=8, color="rgba(255,255,255,0.50)"), "range": [0, 65]},
             "threshold": {"line": {"color": "blue", "width": 1}, "thickness": 0.5, "value": mean_fact},
             "steps": [
-                {"range": [0, 20], "color": "#9ade5d"},
-                {"range": [20, 35], "color": "#f0f259"},
-                {"range": [35, 50], "color": "#e7a847"},
-                {"range": [50, 65], "color": "#d3382e"},
+                {"range": [0, 20], "color": "#4ade80"},
+                {"range": [20, 35], "color": "#facc15"},
+                {"range": [35, 50], "color": "#fb923c"},
+                {"range": [50, 65], "color": "#f87171"},
             ],
-            "bar": {"color": "black", "thickness": 0.1},
+            "bar": {"color": "rgba(255,255,255,0.70)", "thickness": 0.1},
         },
     ))
 
@@ -79,15 +79,15 @@ def figure(
         domain={"x": [0.25, 1], "y": [0.43, 0.6]},
         gauge={
             "shape": "bullet",
-            "axis": {"tickangle": 0, "tickwidth": 0.2, "tickfont": dict(size=8, color="black"), "range": [0, 120]},
+            "axis": {"tickangle": 0, "tickwidth": 0.2, "tickfont": dict(size=8, color="rgba(255,255,255,0.50)"), "range": [0, 120]},
             "threshold": {"line": {"color": "blue", "width": 1}, "thickness": 0.5, "value": mean_pop},
             "steps": [
-                {"range": [0, 30], "color": "#9ade5d"},
-                {"range": [30, 60], "color": "#f0f259"},
-                {"range": [60, 90], "color": "#e7a847"},
-                {"range": [90, 120], "color": "#d3382e"},
+                {"range": [0, 30], "color": "#4ade80"},
+                {"range": [30, 60], "color": "#facc15"},
+                {"range": [60, 90], "color": "#fb923c"},
+                {"range": [90, 120], "color": "#f87171"},
             ],
-            "bar": {"color": "black", "thickness": 0.1},
+            "bar": {"color": "rgba(255,255,255,0.70)", "thickness": 0.1},
         },
     ))
 
@@ -101,15 +101,15 @@ def figure(
         domain={"x": [0.25, 1], "y": [0.73, 0.9]},
         gauge={
             "shape": "bullet",
-            "axis": {"tickangle": 0, "tickwidth": 0.2, "tickfont": dict(size=8, color="black"), "range": [0, 12]},
+            "axis": {"tickangle": 0, "tickwidth": 0.2, "tickfont": dict(size=8, color="rgba(255,255,255,0.50)"), "range": [0, 12]},
             "threshold": {"line": {"color": "blue", "width": 1}, "thickness": 0.5, "value": mean_perc},
             "steps": [
-                {"range": [0, 3], "color": "#9ade5d"},
-                {"range": [3, 6], "color": "#f0f259"},
-                {"range": [6, 9], "color": "#e7a847"},
-                {"range": [9, 12], "color": "#d3382e"},
+                {"range": [0, 3], "color": "#4ade80"},
+                {"range": [3, 6], "color": "#facc15"},
+                {"range": [6, 9], "color": "#fb923c"},
+                {"range": [9, 12], "color": "#f87171"},
             ],
-            "bar": {"color": "black", "thickness": 0.1},
+            "bar": {"color": "rgba(255,255,255,0.70)", "thickness": 0.1},
         },
     ))
 
@@ -120,9 +120,9 @@ def figure(
         width=width * 0.17,
         height=height * 0.24,
         annotations=[
-            dict(text="<span style='font-size:8;color:black'><b>SYH'a bağlı<br>Yüzdelik<br>Ölüm</b></span>", x=0.03, y=0.9, showarrow=False, xref="paper", yref="paper"),
-            dict(text="<span style='font-size:8;color:black'><b>100 000<br>kişide<br>ölüm</b></span>", x=0.07, y=0.5, showarrow=False, xref="paper", yref="paper"),
-            dict(text="<span style='font-size:8;color:black'><b>pm2.5<br>Seviyesi</b></span>", x=0.06, y=0.15, showarrow=False, xref="paper", yref="paper"),
+            dict(text="<span style='font-size:8;color:rgba(255,255,255,0.75)'><b>SYH'a bağlı<br>Yüzdelik<br>Ölüm</b></span>", x=0.03, y=0.9, showarrow=False, xref="paper", yref="paper"),
+            dict(text="<span style='font-size:8;color:rgba(255,255,255,0.75)'><b>100 000<br>kişide<br>ölüm</b></span>", x=0.07, y=0.5, showarrow=False, xref="paper", yref="paper"),
+            dict(text="<span style='font-size:8;color:rgba(255,255,255,0.75)'><b>pm2.5<br>Seviyesi</b></span>", x=0.06, y=0.15, showarrow=False, xref="paper", yref="paper"),
         ],
     )
     return fig.to_dict()

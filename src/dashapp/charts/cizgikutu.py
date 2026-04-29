@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from dashapp.data_loader import load_covid, load_merged
-from dashapp.theme import AXIS_STYLE, TRANSPARENT_LAYOUT
+from dashapp.theme import AXIS_STYLE, CHART_COLORS, TRANSPARENT_LAYOUT
 from dashapp.transforms import filter_total, safe_first
 
 
@@ -66,13 +66,15 @@ def figure(
     fig.add_trace(go.Scatter(
         x=df["Year"], y=df["Cumulative Deaths"],
         fill="tozeroy", mode="lines",
-        fillcolor="blue", line=dict(color="blue"),
+        name="SYH Kümülatif Ölüm",
+        fillcolor="rgba(56, 189, 248, 0.25)",
+        line=dict(color=CHART_COLORS[0], width=2),
     ))
     fig.add_trace(go.Scatter(
         x=df["Year"], y=[covid_total] * len(df),
         mode="lines", fill="tozeroy",
-        fillcolor="rgba(255,0,0,0.7)",
-        line=dict(color="rgba(255,0,0,0.7)", width=0),
+        fillcolor="rgba(251, 113, 133, 0.22)",
+        line=dict(color=CHART_COLORS[1], width=1.5),
         showlegend=False,
     ))
 
@@ -91,7 +93,7 @@ def figure(
             y=float(country_numbers.median()) * 0.3 if not country_numbers.empty else 0,
             xanchor="center", yanchor="bottom",
             showarrow=False,
-            font=dict(color="black", size=14),
+            font=dict(color="rgba(255,255,255,0.75)", size=12),
         )],
     )
     return fig.to_dict()

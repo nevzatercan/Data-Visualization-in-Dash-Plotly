@@ -69,19 +69,31 @@ def figure(
     formatted_country = [f"{v:.2f}" for v in country_means]
     formatted_world = [f"{v:.2f}" for v in world_means]
 
-    colors_outer = ["#ffd166", "#ef476f", "#26547c", "#06d6a0"]
-    colors_inner = ["#ffcc58cc", "#ec6564cc", "#3e80bfcc", "#a2d9cb"]
+    # Dış halka: CHART_COLORS paleti (opaklık 0.90)
+    colors_outer = [
+        "rgba( 56, 189, 248, 0.90)",   # sky-400
+        "rgba(251, 113, 133, 0.90)",   # rose-400
+        "rgba( 52, 211, 153, 0.90)",   # emerald-400
+        "rgba(251, 191,  36, 0.90)",   # amber-400
+    ]
+    # İç halka: aynı tonlar, daha saydam
+    colors_inner = [
+        "rgba( 56, 189, 248, 0.35)",
+        "rgba(251, 113, 133, 0.35)",
+        "rgba( 52, 211, 153, 0.35)",
+        "rgba(251, 191,  36, 0.35)",
+    ]
 
     outer = go.Pie(
         labels=labels, values=formatted_country, textinfo="value",
         name="Outer Pie", hole=0.2,
-        marker=dict(colors=colors_outer, line=dict(width=7, color="white")),
+        marker=dict(colors=colors_outer, line=dict(width=5, color="rgba(10,18,36,0.80)")),
         domain={"x": [0.3, 0.9], "y": [0.1, 0.9]},
     )
     inner = go.Pie(
         labels=labels, values=formatted_world, name="Inner Pie",
         textinfo="value", hole=0.8,
-        marker=dict(colors=colors_inner, line=dict(width=7, color="white")),
+        marker=dict(colors=colors_inner, line=dict(width=5, color="rgba(10,18,36,0.80)")),
         domain={"x": [0.2, 1.0], "y": [0.0, 1.0]},
     )
 
@@ -96,7 +108,7 @@ def figure(
         legend=dict(y=0.5),
         annotations=[
             dict(
-                text=f'<span style="color:black">{display_name} ve Dünyanın<br>yerleşim bölgelerine göre<br>pm2.5 ortalaması</span>',
+                text=f'<span style="color:rgba(255,255,255,0.85);font-weight:bold">{display_name} ve Dünyanın<br>yerleşim bölgelerine göre<br>pm2.5 ortalaması</span>',
                 x=1.05, y=0.95, font_size=16, showarrow=False,
             ),
             dict(text="<span>Şehir: en az 50.000 nüfuslu (km² başına >1.500 nüfuslu)</span>", x=1.05, y=0.09, font_size=9, showarrow=False),

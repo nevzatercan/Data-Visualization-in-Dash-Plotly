@@ -5,15 +5,15 @@ from __future__ import annotations
 import plotly.express as px
 
 from dashapp.data_loader import load_air
-from dashapp.theme import TRANSPARENT_LAYOUT
+from dashapp.theme import CHART_MARGIN, TRANSPARENT_LAYOUT
 
 _COLOR_PALETTE = {
-    "Afrika": "#5E1675",
-    "Güney Doğu Asya": "#39A7FF",
-    "Avrupa": "#337357",
-    "Amerika": "#FFD23F",
-    "Ortadoğu": "#211951",
-    "Batı Pasifik": "#FF4B91",
+    "Afrika":          "rgba(251, 113, 133, 0.85)",   # rose-400
+    "Güney Doğu Asya": "rgba( 56, 189, 248, 0.85)",   # sky-400
+    "Avrupa":          "rgba( 52, 211, 153, 0.85)",   # emerald-400
+    "Amerika":         "rgba(251, 191,  36, 0.85)",   # amber-400
+    "Ortadoğu":        "rgba(167, 139, 250, 0.85)",   # violet-400
+    "Batı Pasifik":    "rgba( 45, 212, 191, 0.85)",   # teal-400
 }
 
 
@@ -48,9 +48,10 @@ def figure(
         **TRANSPARENT_LAYOUT,
         width=width * 0.315,
         height=height * 0.4,
-        legend=dict(font=dict(size=8)),
+        legend=dict(font=dict(size=10), orientation="v", title_text=""),
         xaxis_tickangle=45,
         xaxis_title="Yıl",
         yaxis_title="PM2.5 Seviyesi",
+        margin=CHART_MARGIN,
     )
     return fig.to_dict()

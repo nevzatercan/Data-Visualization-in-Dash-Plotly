@@ -28,12 +28,11 @@ _CHART_PANEL_STYLE: dict = {
     "border-radius": "16px",
     "padding": "0",
     "overflow": "hidden",
-    # glass-dark eşdeğeri (CSS sınıfı da eklendi — ama inline de korunuyor)
-    "background": "rgba(13, 17, 30, 0.80)",
-    "backdrop-filter": "blur(28px) saturate(1.4)",
-    "-webkit-backdrop-filter": "blur(28px) saturate(1.4)",
-    "border": "1px solid rgba(255, 255, 255, 0.10)",
-    "box-shadow": "0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)",
+    "background": "rgba(10, 18, 36, 0.90)",
+    "backdrop-filter": "blur(32px) saturate(1.7)",
+    "-webkit-backdrop-filter": "blur(32px) saturate(1.7)",
+    "border": "1px solid rgba(56, 130, 246, 0.18)",
+    "box-shadow": "0 24px 64px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 0 0 1px rgba(0,0,0,0.30)",
 }
 _SIDE_PANEL_BASE_STYLE: dict = {
     "display": "block",
@@ -45,11 +44,11 @@ _SIDE_PANEL_BASE_STYLE: dict = {
     "transform": "translateY(-50%)",
     "border-radius": "16px",
     "overflow": "hidden",
-    "background": "rgba(13, 17, 30, 0.80)",
-    "backdrop-filter": "blur(28px) saturate(1.4)",
-    "-webkit-backdrop-filter": "blur(28px) saturate(1.4)",
-    "border": "1px solid rgba(255, 255, 255, 0.10)",
-    "box-shadow": "0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)",
+    "background": "rgba(10, 18, 36, 0.90)",
+    "backdrop-filter": "blur(32px) saturate(1.7)",
+    "-webkit-backdrop-filter": "blur(32px) saturate(1.7)",
+    "border": "1px solid rgba(56, 130, 246, 0.18)",
+    "box-shadow": "0 24px 64px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 0 0 1px rgba(0,0,0,0.30)",
 }
 
 

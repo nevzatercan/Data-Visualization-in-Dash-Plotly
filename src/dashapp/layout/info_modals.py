@@ -34,10 +34,12 @@ def _build_table_styles() -> list[dict]:
         ]),
     ]:
         for lo, hi, color in ranges:
+            # Dash DataTable filter_query syntax: {column_id} with single braces.
+            # f"{{{col}}}" → literal { + value_of_col + literal } = e.g. {Number}
             fq = (
-                f"{{{{{col}}}}} >= {lo} && {{{{{col}}}}} < {hi}"
+                f"{{{col}}} >= {lo} && {{{col}}} < {hi}"
                 if hi is not None
-                else f"{{{{{col}}}}} >= {lo}"
+                else f"{{{col}}} >= {lo}"
             )
             styles.append({
                 "if": {"column_id": col, "filter_query": fq},
@@ -53,76 +55,91 @@ def _build_table_styles() -> list[dict]:
 
 def make_info_modal1() -> dmc.Modal:
     """PM2.5 dünya haritası modali (eski info_div)."""
+    # Bölge istatistikleri — (ad, değer, renk)
+    _REGIONS = [
+        ("Afrika",         "29.11 μm", "#fb923c"),
+        ("Güneydoğu Asya", "29.81 μm", "#fb923c"),
+        ("Ortadoğu",       "40.89 μm", "#f87171"),
+        ("Avrupa",         "19.22 μm", "#facc15"),
+        ("Batı Pasifik",   "17.06 μm", "#4ade80"),
+        ("Amerika",        "14.61 μm", "#4ade80"),
+    ]
+
     content = html.Div(
         [
-            # Kapat butonu
+            # ── Kapat butonu ──────────────────────────────────────────────────
             html.Div(
                 id="closeButton2",
+                n_clicks=0,
                 children="×",
                 style={
                     "position": "absolute",
-                    "top": "10px",
-                    "right": "20px",
-                    "font-size": "24px",
-                    "color": "black",
+                    "top": "12px",
+                    "right": "18px",
+                    "fontSize": "26px",
+                    "lineHeight": "1",
+                    "color": "rgba(148,163,184,0.80)",
                     "cursor": "pointer",
-                    "z-index": "9999",
+                    "zIndex": 9999,
+                    "width": "32px",
+                    "height": "32px",
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "center",
+                    "borderRadius": "8px",
+                    "background": "rgba(255,255,255,0.06)",
+                    "border": "1px solid rgba(56,130,246,0.18)",
+                    "transition": "background 0.15s ease",
                 },
             ),
-            # Sol kısım — harita + bölge istatistikleri
+            # ── Sol kısım — harita + bölge istatistikleri ─────────────────────
             html.Div(
                 [
                     html.P(
                         "Bölgelere Göre PM2.5 Seviyeleri",
-                        style={"color": "black", "font-size": "145%", "margin-bottom": "2%"},
+                        style={
+                            "color": "rgba(241,245,249,0.92)",
+                            "fontSize": "145%",
+                            "fontWeight": "700",
+                            "marginBottom": "2%",
+                            "marginLeft": "2%",
+                        },
                     ),
                     html.Img(
                         src="",
-                        style={"width": "100%", "margin-top": "1%", "height": "69%"},
+                        style={"width": "100%", "marginTop": "1%", "height": "63%", "objectFit": "contain"},
                         id="BolgeHaritasi",
                     ),
+                    # Bölge değerleri — 2 sütun grid
                     html.Div(
                         [
                             html.Div(
                                 [
-                                    html.Div([
-                                        html.P("Afrika: ", style={"display": "inline"}),
-                                        html.Span("29.11 μm", style={"border": "1px solid black", "padding": "2px", "margin-left": "5px", "margin-right": "-11%", "background-color": "#e3a96d"}),
-                                    ], style={"margin-top": "10%", "margin-bottom": "10%"}),
-                                    html.Div([
-                                        html.P("Batı Pasifik: ", style={"display": "inline"}),
-                                        html.Span("17.06 μm", style={"border": "1px solid black", "padding": "2px", "margin-left": "5px", "background-color": "#bfe982"}),
-                                    ]),
+                                    html.Span(name, style={"color": "rgba(148,163,184,0.80)", "fontSize": "11px"}),
+                                    html.Span(
+                                        val,
+                                        style={
+                                            "fontSize": "11px",
+                                            "fontWeight": "700",
+                                            "color": clr,
+                                            "marginLeft": "6px",
+                                            "padding": "1px 6px",
+                                            "borderRadius": "4px",
+                                            "background": "rgba(255,255,255,0.06)",
+                                        },
+                                    ),
                                 ],
-                                style={"width": "33%", "float": "left", "border-right": "1px solid black", "height": "18%"},
-                            ),
-                            html.Div(
-                                [
-                                    html.Div([
-                                        html.P("Amerika: ", style={"display": "inline", "margin-left": "-5%"}),
-                                        html.Span("14.61 μm", style={"border": "1px solid black", "padding": "2px", "margin-left": "5px", "margin-right": "-24%", "background-color": "#bfe982"}),
-                                    ], style={"margin-top": "10%", "margin-bottom": "10%"}),
-                                    html.Div([
-                                        html.P("Güneydoğu Asya: ", style={"display": "inline"}),
-                                        html.Span("29.81 μm", style={"border": "1px solid black", "padding": "2px", "margin-left": "5px", "background-color": "#e3a96d"}),
-                                    ]),
-                                ],
-                                style={"width": "33%", "float": "left", "border-right": "1px solid black", "height": "18%"},
-                            ),
-                            html.Div(
-                                [
-                                    html.Div([
-                                        html.P("Avrupa: ", style={"display": "inline", "margin-left": "-17%"}),
-                                        html.Span("19.22 μm", style={"border": "1px solid black", "padding": "2px", "margin-left": "5px", "margin-right": "-21%", "background-color": "#ddeb83"}),
-                                    ], style={"margin-top": "10%", "margin-bottom": "10%"}),
-                                    html.Div([
-                                        html.P("Ortadoğu: ", style={"display": "inline"}),
-                                        html.Span("40.89 μm", style={"border": "1px solid black", "padding": "2px", "margin-left": "5px", "background-color": "#d97378"}),
-                                    ]),
-                                ],
-                                style={"width": "33%", "float": "left"},
-                            ),
-                        ]
+                                style={"display": "flex", "alignItems": "center", "padding": "4px 8px"},
+                            )
+                            for name, val, clr in _REGIONS
+                        ],
+                        style={
+                            "display": "grid",
+                            "gridTemplateColumns": "1fr 1fr",
+                            "gap": "0",
+                            "marginTop": "8px",
+                            "borderTop": "1px solid rgba(56,130,246,0.14)",
+                        },
                     ),
                 ],
                 id="left_div",
@@ -130,15 +147,16 @@ def make_info_modal1() -> dmc.Modal:
                     "height": "100%",
                     "width": "64%",
                     "float": "left",
-                    "background-color": "rgba(255,255,255,0.93)",
-                    "border-top-left-radius": "21px",
-                    "border-bottom-left-radius": "21px",
-                    "border": "2px solid rgba(0,0,0,0.73)",
-                    "box-sizing": "border-box",
-                    "margin-right": "1%",
+                    "background": "rgba(10, 18, 36, 0.82)",
+                    "borderTopLeftRadius": "16px",
+                    "borderBottomLeftRadius": "16px",
+                    "border": "1px solid rgba(56,130,246,0.16)",
+                    "boxSizing": "border-box",
+                    "marginRight": "1%",
+                    "padding": "14px 12px 10px",
                 },
             ),
-            # Sağ kısım — sunburst + linearea
+            # ── Sağ kısım — sunburst + linearea ──────────────────────────────
             html.Div(
                 [
                     html.Div(
@@ -147,10 +165,10 @@ def make_info_modal1() -> dmc.Modal:
                         style={
                             "height": "50%",
                             "width": "100%",
-                            "background-color": "rgba(255,255,255,0.93)",
-                            "border": "2px solid rgba(0,0,0,0.73)",
-                            "box-sizing": "border-box",
-                            "border-top-right-radius": "21px",
+                            "background": "rgba(10, 18, 36, 0.70)",
+                            "border": "1px solid rgba(56,130,246,0.14)",
+                            "boxSizing": "border-box",
+                            "borderTopRightRadius": "16px",
                         },
                     ),
                     html.Div(
@@ -159,16 +177,16 @@ def make_info_modal1() -> dmc.Modal:
                         style={
                             "height": "50%",
                             "width": "100%",
-                            "background-color": "rgba(255,255,255,0.93)",
-                            "border-bottom": "2px solid rgba(0,0,0,0.73)",
-                            "border-left": "2px solid rgba(0,0,0,0.73)",
-                            "border-right": "2px solid rgba(0,0,0,0.73)",
-                            "box-sizing": "border-box",
-                            "border-bottom-right-radius": "21px",
+                            "background": "rgba(10, 18, 36, 0.70)",
+                            "borderBottom": "1px solid rgba(56,130,246,0.14)",
+                            "borderLeft": "1px solid rgba(56,130,246,0.14)",
+                            "borderRight": "1px solid rgba(56,130,246,0.14)",
+                            "boxSizing": "border-box",
+                            "borderBottomRightRadius": "16px",
                         },
                     ),
                 ],
-                style={"width": "34%", "height": "100%", "float": "left", "margin-left": "1%"},
+                style={"width": "34%", "height": "100%", "float": "left", "marginLeft": "1%"},
             ),
         ],
         style={"position": "relative", "height": "80vh"},
@@ -181,7 +199,14 @@ def make_info_modal1() -> dmc.Modal:
         size="90%",
         centered=True,
         children=content,
-        styles={"body": {"padding": "0", "height": "80vh", "overflow": "hidden"}},
+        styles={
+            "body": {"padding": "0", "height": "80vh", "overflow": "hidden"},
+            "content": {
+                "background": "rgba(7, 11, 20, 0.95)",
+                "border": "1px solid rgba(56,130,246,0.22)",
+                "borderRadius": "18px",
+            },
+        },
     )
 
 
@@ -189,49 +214,151 @@ def make_info_modal1() -> dmc.Modal:
 # Modal 2 — Veri tablosu
 # ---------------------------------------------------------------------------
 
-def make_info_modal2() -> dmc.Modal:
-    """Veri tablosu modali (eski info_div2)."""
-    df = load_table_data()
-    columns = [{"name": c, "id": c} for c in df.columns]
-    data = df.to_dict("records")
+# Gösterilecek sütunlar: DataFrame sütun adı → Türkçe ekran adı.
+# Normalizasyon sütunları kasıtlı olarak hariç bırakıldı.
+_TABLE_COLS: dict[str, str] = {
+    "Country Code":                                              "Kod",
+    "Country Name":                                              "Ülke",
+    "Region Name":                                               "Bölge",
+    "Year":                                                      "Yıl",
+    "Number":                                                    "Ölüm Sayısı",
+    "Percentage of cause-specific deaths out of total deaths":   "Ölüm %",
+    "Death rate per 100 000 population":                         "100K'da Ölüm",
+    "FactValueNumeric":                                          "PM2.5",
+    "FactValueNumericLow":                                       "PM2.5 Alt",
+    "FactValueNumericHigh":                                      "PM2.5 Üst",
+}
 
+
+def _table_columns() -> list[dict]:
+    return [{"name": display, "id": col_id} for col_id, display in _TABLE_COLS.items()]
+
+
+def _table_data() -> list[dict]:
+    """1.7 K satırlık tablo verisini döndürür; NaN → None (geçerli JSON).
+
+    Notes
+    -----
+    pandas float sütunlarda ``where(notna, None)`` NaN'ı geri koyar.
+    Güvenilir yol: ``to_dict`` sonrası satır bazlı döngüyle replace etmek.
+    """
+    import math
+
+    df = load_table_data()
+    cols = [c for c in _TABLE_COLS if c in df.columns]
+    subset = df[cols].copy()
+
+    float_cols = subset.select_dtypes("float").columns
+    subset[float_cols] = subset[float_cols].round(2)
+
+    records = subset.to_dict("records")
+    # pandas NaN → None (float NaN geçerli JSON değil)
+    for row in records:
+        for key, val in row.items():
+            if isinstance(val, float) and math.isnan(val):
+                row[key] = None
+    return records
+
+
+def make_info_modal2() -> dmc.Modal:
+    """Veri tablosu modali — ülke×yıl düzeyinde PM2.5 + ölüm özet tablosu."""
     content = html.Div(
         [
+            # ── Başlık satırı ──────────────────────────────────────────────────
             html.Div(
-                id="closeButton3",
-                children="×",
+                [
+                    html.Span(
+                        "PM2.5 ve Solunum Yolu Hastalıklarına Bağlı Ölüm Verileri",
+                        style={
+                            "color": "rgba(241, 245, 249, 0.90)",
+                            "fontSize": "14px",
+                            "fontWeight": "700",
+                            "letterSpacing": "0.5px",
+                        },
+                    ),
+                    html.Div(
+                        id="closeButton3",
+                        n_clicks=0,
+                        children="×",
+                        style={
+                            "fontSize": "24px",
+                            "lineHeight": "1",
+                            "color": "rgba(148,163,184,0.75)",
+                            "cursor": "pointer",
+                            "width": "30px",
+                            "height": "30px",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "center",
+                            "borderRadius": "8px",
+                            "background": "rgba(255,255,255,0.05)",
+                            "border": "1px solid rgba(56,130,246,0.18)",
+                            "flexShrink": 0,
+                        },
+                    ),
+                ],
                 style={
-                    "position": "absolute",
-                    "top": "10px",
-                    "right": "20px",
-                    "font-size": "24px",
-                    "color": "white",
-                    "cursor": "pointer",
-                    "z-index": "9999",
+                    "display": "flex",
+                    "justifyContent": "space-between",
+                    "alignItems": "center",
+                    "padding": "14px 18px 10px",
+                    "borderBottom": "1px solid rgba(56,130,246,0.14)",
                 },
             ),
-            html.P(
-                "PM2.5 ve SOLUNUM YOLU HASTALIKLARINA BAĞLI ÖLÜM VERİLERİ TABLOSU",
-                style={"color": "white", "margin-left": "27%", "font-size": "110%"},
-            ),
-            dash_table.DataTable(
-                id="table",
-                columns=columns,
-                data=data,
-                style_cell={"textAlign": "left"},
-                style_header={"backgroundColor": "paleturquoise"},
-                style_data={"backgroundColor": "lavender"},
-                style_data_conditional=_build_table_styles(),
-                sort_action="native",
-                filter_action="native",
-                style_table={
-                    "overflowX": "auto",
-                    "height": "100%",
-                    "width": "100%",
-                },
+            # ── DataTable ──────────────────────────────────────────────────────
+            html.Div(
+                dash_table.DataTable(
+                    id="table",
+                    columns=_table_columns(),
+                    data=_table_data(),
+                    sort_action="native",
+                    filter_action="native",
+                    page_action="native",
+                    page_size=50,
+                    style_table={
+                        "overflowX": "auto",
+                        "overflowY": "auto",
+                        "maxHeight": "calc(80vh - 64px)",
+                        "minWidth": "100%",
+                    },
+                    style_cell={
+                        "textAlign": "left",
+                        "backgroundColor": "rgba(7, 11, 20, 0.95)",
+                        "color": "rgba(241, 245, 249, 0.82)",
+                        "border": "1px solid rgba(56, 130, 246, 0.10)",
+                        "padding": "6px 10px",
+                        "fontSize": "12px",
+                        "fontFamily": "'Inter', 'Segoe UI', sans-serif",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden",
+                        "textOverflow": "ellipsis",
+                        "maxWidth": "200px",
+                    },
+                    style_header={
+                        "backgroundColor": "rgba(56, 130, 246, 0.18)",
+                        "color": "rgba(241, 245, 249, 0.95)",
+                        "fontWeight": "700",
+                        "border": "1px solid rgba(56, 130, 246, 0.25)",
+                        "fontSize": "11px",
+                        "letterSpacing": "0.5px",
+                        "padding": "8px 10px",
+                    },
+                    style_filter={
+                        "backgroundColor": "rgba(10, 18, 36, 0.80)",
+                        "color": "rgba(148, 163, 184, 0.90)",
+                        "border": "1px solid rgba(56, 130, 246, 0.18)",
+                    },
+                    style_data_conditional=_build_table_styles(),
+                ),
+                style={"flex": 1, "overflow": "hidden"},
             ),
         ],
-        style={"position": "relative", "height": "80vh"},
+        style={
+            "display": "flex",
+            "flexDirection": "column",
+            "height": "80vh",
+            "overflow": "hidden",
+        },
     )
 
     return dmc.Modal(
@@ -245,12 +372,12 @@ def make_info_modal2() -> dmc.Modal:
             "body": {
                 "padding": "0",
                 "height": "80vh",
-                "overflow": "scroll",
-                "background-color": "rgba(0,0,0,0.8)",
+                "overflow": "hidden",
             },
             "content": {
-                "background-color": "rgba(0,0,0,0.8)",
-                "border": "5px solid white",
+                "background": "rgba(7, 11, 20, 0.97)",
+                "border": "1px solid rgba(56, 130, 246, 0.22)",
+                "borderRadius": "16px",
             },
         },
     )

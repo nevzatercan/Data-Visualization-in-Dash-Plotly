@@ -1,17 +1,22 @@
 /* ═══════════════════════════════════════════════════════
-   Dashboard Global Styles
+   Dashboard Global Styles — "Arctic Depth" palette
+   Background: #070b14  |  Surface: rgba(10,18,36,0.88)
+   Accent: #38bdf8 (sky-400)  |  Border: rgba(56,130,246,0.16)
    ═══════════════════════════════════════════════════════ */
 
 /* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; }
-body { overflow: hidden; background: #0d1117; }
+body { overflow: hidden; background: #070b14; }
 
 /* ── Glass utility ── */
 .glass {
-  background: rgba(13, 17, 30, 0.72);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(10, 18, 36, 0.88);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  border: 1px solid rgba(56, 130, 246, 0.16);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.40) inset,
+    0 16px 48px rgba(0, 0, 0, 0.45);
 }
 
 /* ── Panel slide-in animations ── */
@@ -23,77 +28,77 @@ body { overflow: hidden; background: #0d1117; }
   from { transform: translateX(-48px); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
 }
-@keyframes fadeInUp {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
 
 .panel-right { animation: slideInRight 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
 .panel-left  { animation: slideInLeft  0.28s cubic-bezier(0.4, 0, 0.2, 1); }
 
 /* ── Filter segments ── */
 .filter-seg {
-  transition: filter 0.18s ease, transform 0.1s ease;
+  transition: filter 0.18s ease, transform 0.10s ease;
   cursor: pointer;
 }
-.filter-seg:hover  { filter: brightness(1.18) saturate(1.2); }
-.filter-seg:active { transform: scaleY(0.90); }
+.filter-seg:hover  { filter: brightness(1.20) saturate(1.15); }
+.filter-seg:active { transform: scaleY(0.88); }
 
 /* ── Close button ── */
 .close-x {
   position: absolute;
   top: 14px; right: 14px;
   width: 30px; height: 30px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 17px; line-height: 1;
-  color: rgba(255, 255, 255, 0.60);
+  color: rgba(255, 255, 255, 0.50);
   cursor: pointer;
-  transition: background 0.18s, color 0.18s, transform 0.12s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.12s;
   z-index: 9999;
 }
 .close-x:hover {
-  background: rgba(230, 60, 60, 0.50);
+  background: rgba(239, 68, 68, 0.45);
+  border-color: rgba(239, 68, 68, 0.55);
   color: white;
   transform: scale(1.08);
 }
 
 /* ── Mantine Slider overrides (dark toolbar) ── */
 .toolbar-slider .mantine-Slider-label {
-  background: rgba(0, 0, 0, 0.80) !important;
-  color: white !important;
+  background: rgba(10, 18, 36, 0.95) !important;
+  color: rgba(56, 189, 248, 0.95) !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   padding: 3px 8px !important;
   border-radius: 6px !important;
+  border: 1px solid rgba(56, 130, 246, 0.25) !important;
 }
 .toolbar-slider .mantine-Slider-markLabel {
-  color: rgba(255, 255, 255, 0.55) !important;
+  color: rgba(148, 163, 184, 0.55) !important;
   font-size: 10px !important;
   margin-top: 4px !important;
 }
 .toolbar-slider .mantine-Slider-track::before {
-  background: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(56, 130, 246, 0.20) !important;
 }
 .toolbar-slider .mantine-Slider-bar {
-  background: rgba(255, 255, 255, 0.85) !important;
+  background: linear-gradient(90deg, rgba(56,189,248,0.80), rgba(99,102,241,0.80)) !important;
 }
 .toolbar-slider .mantine-Slider-thumb {
-  border-color: white !important;
-  background: white !important;
+  border-color: rgba(56, 189, 248, 0.90) !important;
+  background: rgba(10, 18, 36, 0.95) !important;
   width: 16px !important;
   height: 16px !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important;
 }
 
 /* ── Info action buttons ── */
 .info-btn {
-  transition: transform 0.15s ease, background 0.18s ease !important;
+  transition: transform 0.15s ease, background 0.18s ease, border-color 0.18s ease !important;
 }
 .info-btn:hover {
   transform: scale(1.10) !important;
-  background: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(56, 130, 246, 0.15) !important;
+  border-color: rgba(56, 189, 248, 0.40) !important;
 }
 
 /* ── Panel section label ── */
@@ -102,7 +107,7 @@ body { overflow: hidden; background: #0d1117; }
   font-weight: 700;
   letter-spacing: 1.8px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.40);
+  color: rgba(100, 116, 139, 0.75);
   margin-bottom: 6px;
 }
 
@@ -111,7 +116,7 @@ body { overflow: hidden; background: #0d1117; }
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(148, 163, 184, 0.60);
   text-align: center;
   margin-top: 6px;
 }
@@ -120,16 +125,23 @@ body { overflow: hidden; background: #0d1117; }
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(56, 130, 246, 0.25);
   border-radius: 2px;
-}
-
-/* ── Dash DataTable dark override ── */
-.dash-table-container .dash-spreadsheet-container {
-  font-size: 13px !important;
 }
 
 /* ── Plotly graph transparent bg ── */
 .js-plotly-plot .plotly {
   background: transparent !important;
+}
+
+/* ── dcc.Loading spinner — sky-400 accent ── */
+._dash-loading {
+  background: rgba(7, 11, 20, 0.30) !important;
+  border-radius: 12px;
+}
+._dash-loading-spinner {
+  border-top-color: rgba(56, 189, 248, 0.90) !important;
+  border-left-color: rgba(56, 189, 248, 0.22) !important;
+  border-right-color: rgba(56, 189, 248, 0.22) !important;
+  border-bottom-color: rgba(56, 189, 248, 0.22) !important;
 }

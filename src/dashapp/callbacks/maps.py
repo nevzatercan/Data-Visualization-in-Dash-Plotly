@@ -1,14 +1,18 @@
-"""Harita callback'i."""
+"""Harita callback'i — MapLibre tabanlı choropleth (Plotly 6+)."""
 from __future__ import annotations
 
 import dash
 import plotly.graph_objects as go
 from dash import Input, Output, State
 
-from dashapp.data_loader import load_air, load_merged
+from dashapp.data_loader import load_air, load_country_centroids, load_merged
 from dashapp.layout.stores import parse_viewport
 from dashapp.theme import DEFAULT_SCALE, THRESHOLD_COLORS
 from dashapp.transforms import filter_total
+
+# GeoJSON URL: Dash tarafından statik olarak sunulur, tarayıcı bir kez indirir ve önbelleğe alır.
+# Python callback'inde GeoJSON veri gönderilmez → her güncellemede sıfır overhead.
+_GEOJSON_URL = "/assets/geojson/countries.geojson"
 
 # Filtre buton konfigürasyonu: prop_id → (flag, tek-renkli-skala, filtre-fn)
 _FILTER_CONFIG = {
@@ -18,10 +22,16 @@ _FILTER_CONFIG = {
     "kırmızıbuton.n_clicks":  (4, [(0, THRESHOLD_COLORS["red"]),    (1, THRESHOLD_COLORS["red"])],    lambda df: df[df["FactValueNumeric"] > 48]),
 }
 
+# Ücretsiz, token gerektirmez.
+_MAP_STYLE = "carto-darkmatter"
+_MAP_CENTER = {"lat": 25, "lon": 10}
+_MAP_ZOOM = 1.4
+
 
 def register(app: dash.Dash) -> None:
     df_air = load_air()
     merged_df = load_merged()
+    centroids = load_country_centroids()
 
     @app.callback(
         [Output("Harita", "figure"),
@@ -35,7 +45,6 @@ def register(app: dash.Dash) -> None:
          State("filter-store", "data")],
     )
     def update_maps(option_slctd, _g, _y, _o, _r, vp, filter_data):
-        width, height = parse_viewport(vp)
         isFiltered = (filter_data or {}).get("is_filtered", 0)
 
         ctx = dash.callback_context
@@ -53,40 +62,70 @@ def register(app: dash.Dash) -> None:
             else:
                 isFiltered = 0
 
-        fig = go.Figure()
-        fig.add_trace(go.Choropleth(
-            hoverinfo="none",
-            locationmode="ISO-3",
+        # ── Choropleth (PM2.5 seviyesi renk dolgusu) ─────────────────────────
+        fig = go.Figure(go.Choroplethmap(
+            geojson=_GEOJSON_URL,
+            featureidkey="properties.ISO3166-1-Alpha-3",
             locations=filtered_df_air["SpatialDimValueCode"],
             z=filtered_df_air["NormalizationForFactValueNumeric"],
             colorscale=new_color_scale,
+            marker_opacity=0.78,
+            marker_line_width=0.4,
+            marker_line_color="rgba(255,255,255,0.18)",
             showscale=False,
-        ))
-        fig.add_trace(go.Scattergeo(
             hoverinfo="none",
-            locationmode="ISO-3",
-            locations=filteredmerged_df["Country Code"],
-            text=filteredmerged_df["Country Name"],
-            mode="markers",
-            marker=dict(
-                size=filteredmerged_df["Percentage of cause-specific deaths out of total deaths"] * 2.5,
-                color=filteredmerged_df["NormalizationForPerDeath"],
-                colorscale=DEFAULT_SCALE,
-            ),
+            below="",
         ))
-        fig.update_geos(
-            projection_scale=1, showframe=False,
-            projection_type="equirectangular",
-            showcountries=True, showocean=True,
-            oceancolor="#a3d6fb", visible=True,
-        )
-        fig.update_layout(
+
+        # ── Scatter baloncukları (ölüm oranı) ─────────────────────────────────
+        # hoverinfo="skip": Scattermap lat/lon tabanlıdır, hoverData'da "location"
+        # anahtarı bulunmaz. "skip" ile hover event tamamen bastırılır;
+        # sadece Choroplethmap'tan gelen hover event işlenir.
+        lats: list[float] = []
+        lons: list[float] = []
+        sizes: list[float] = []
+        colors: list[float] = []
+
+        for iso, perc, norm in zip(
+            filteredmerged_df["Country Code"],
+            filteredmerged_df["Percentage of cause-specific deaths out of total deaths"],
+            filteredmerged_df["NormalizationForPerDeath"],
+        ):
+            if iso not in centroids:
+                continue
+            lat, lon = centroids[iso]
+            lats.append(lat)
+            lons.append(lon)
+            sizes.append(max(3.0, float(perc) * 2.5))
+            colors.append(float(norm))
+
+        fig.add_trace(go.Scattermap(
+            lat=lats,
+            lon=lons,
+            mode="markers",
+            marker=go.scattermap.Marker(
+                size=sizes,
+                color=colors,
+                colorscale=DEFAULT_SCALE,
+                opacity=0.65,
+                sizemin=3,
+            ),
+            hoverinfo="skip",   # lat/lon tabanlı — "location" anahtarı yok, hover bastırılır
             showlegend=False,
-            autosize=True,          # container CSS ile tam viewport
+        ))
+
+        # ── Layout ───────────────────────────────────────────────────────────
+        fig.update_layout(
+            map=dict(
+                style=_MAP_STYLE,
+                center=_MAP_CENTER,
+                zoom=_MAP_ZOOM,
+            ),
+            showlegend=False,
+            autosize=True,
             margin=dict(l=0, r=0, b=0, t=0, pad=0),
-            dragmode="turntable",
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
+            uirevision="map",   # zoom/pan korunur, veri güncellemesinde reset olmaz
         )
 
         if (filter_data or {}).get("is_filtered", 0) == isFiltered:

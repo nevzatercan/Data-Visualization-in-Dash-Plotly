@@ -6,7 +6,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from dashapp.data_loader import load_sex_age_breakdown
-from dashapp.theme import TRANSPARENT_LAYOUT
+from dashapp.theme import CHART_COLORS, CHART_MARGIN, TRANSPARENT_LAYOUT
 from dashapp.transforms import filter_total
 
 
@@ -65,20 +65,21 @@ def figure(
     female_world = _means(world_df, "Female")
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=age_labels, y=male_country, name=f"{display_name} Erkek Ortalaması", marker_color="rgba(60,162,229,0.96)"))
-    fig.add_trace(go.Bar(x=age_labels, y=female_country, name=f"{display_name} Kadın Ortalaması", marker_color="rgba(234,62,62,0.96)"))
-    fig.add_trace(go.Bar(x=age_labels, y=male_world, name="Dünya Erkek Ortalaması", marker_color="rgba(50,136,193,0.96)"))
-    fig.add_trace(go.Bar(x=age_labels, y=female_world, name="Dünya Kadın Ortalaması", marker_color="rgba(193,50,50,0.96)"))
+    c = CHART_COLORS
+    fig.add_trace(go.Bar(x=age_labels, y=male_country, name=f"{display_name} Erkek", marker_color=c[0]))
+    fig.add_trace(go.Bar(x=age_labels, y=female_country, name=f"{display_name} Kadın", marker_color=c[1]))
+    fig.add_trace(go.Bar(x=age_labels, y=male_world, name="Dünya Erkek Ort.", marker_color=c[4]))
+    fig.add_trace(go.Bar(x=age_labels, y=female_world, name="Dünya Kadın Ort.", marker_color=c[7]))
 
     fig.update_layout(
         **TRANSPARENT_LAYOUT,
-        title="Yaş Gruplarına Göre Cinsiyet Bazında ve Dünya Genelinde Ölüm Oranı",
-        xaxis=dict(title="Yaş Grupları", tickangle=0, tickfont=dict(color="black", size=10), title_font=dict(color="black")),
-        yaxis=dict(title="Ölüm Oranı", tickfont=dict(color="black"), title_font=dict(color="black")),
+        title=dict(text="Yaş & Cinsiyet Bazında Ölüm Oranı", **{k: v for k, v in dict(font=dict(size=12), x=0.5, xanchor="center").items()}),
+        xaxis=dict(title="Yaş Grupları", tickangle=-30),
+        yaxis=dict(title="Ölüm Oranı"),
         barmode="group",
         width=width * 0.46,
         height=height * 0.2475,
-        legend=dict(font=dict(color="black")),
-        margin=dict(l=0, r=0, t=40, b=0),
+        legend=dict(orientation="h", y=-0.25, font=dict(size=10)),
+        margin=CHART_MARGIN,
     )
     return fig.to_dict()

@@ -12,6 +12,7 @@ Kullanım:
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -20,6 +21,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 PROCESSED = ROOT / "data" / "processed"
+ASSETS = ROOT / "assets"
 
 # Sunburst grafiğinde kullanılan bölge adları İngilizce → Türkçe.
 _REGION_TR = {
@@ -195,11 +197,56 @@ def world_radar_means() -> np.ndarray:
 
 @lru_cache(maxsize=1)
 def load_table_data() -> pd.DataFrame:
-    """DataTable için hazırlanmış birleşik tablo (Total filtreli, gereksiz sütunlar çıkarılmış)."""
+    """DataTable için hazırlanmış birleşik tablo.
+
+    Filtreler:
+    - Dim1_y == "Total" (yerleşim tipi toplam)
+    - Sex == "All" + Age Group == "[All]" (tüm nüfus özeti)
+
+    Satır sayısı ~56 K → ~1.7 K'ya düşer; her ülke-yıl çifti tek satır.
+    """
     df = load_merged()
-    df = df[df["Dim1_y"] == "Total"].copy()
+    df = df[
+        (df["Dim1_y"] == "Total")
+        & (df["Sex"] == "All")
+        & (df["Age Group"] == "[All]")
+    ].copy()
     df["Year"] = df["Year"].astype(int)
-    return df.drop(columns=["Dim1_y", "Dim1_x", "Value"], errors="ignore")
+    return df.drop(columns=["Dim1_y", "Dim1_x", "Value", "Sex", "Age Group",
+                             "Age group code"], errors="ignore")
+
+
+@lru_cache(maxsize=1)
+def load_country_centroids() -> dict[str, tuple[float, float]]:
+    """ISO-3 → (lat, lon) hesaplanmış ülke merkezleri.
+
+    GeoJSON'daki her poligonun dış halkasının koordinat ortalamasından türetilir.
+    Scattermapbox baloncukları için yeterli hassasiyette.
+    """
+    geojson_path = ASSETS / "geojson" / "countries.geojson"
+    with open(geojson_path) as f:
+        data = json.load(f)
+
+    result: dict[str, tuple[float, float]] = {}
+    for feat in data["features"]:
+        iso = feat.get("properties", {}).get("ISO3166-1-Alpha-3", "")
+        if not iso or iso == "-99":
+            continue
+        geom = feat.get("geometry", {})
+        gtype = geom.get("type", "")
+        coords: list[list[float]] = []
+        if gtype == "Polygon":
+            coords = geom["coordinates"][0]
+        elif gtype == "MultiPolygon":
+            # En büyük poligonun dış halkasını kullan (en fazla koordinat noktası)
+            rings = [poly[0] for poly in geom["coordinates"]]
+            coords = max(rings, key=len)
+        if not coords:
+            continue
+        lons = [c[0] for c in coords]
+        lats = [c[1] for c in coords]
+        result[iso] = (sum(lats) / len(lats), sum(lons) / len(lons))
+    return result
 
 
 @lru_cache(maxsize=1)

@@ -26,7 +26,12 @@ def register(app: dash.Dash) -> None:
         if hoverData is None:
             return {"display": "none"}, {"data": []}, {"last_iso3": ""}
 
-        location = hoverData["points"][0]["location"]
+        # Choroplethmap hover olayı "location" anahtarı taşır.
+        # Scattermap (lat/lon tabanlı) "skip" ile bastırıldı ama ekstra guard.
+        location = hoverData["points"][0].get("location")
+        if not location:
+            return dash.no_update, dash.no_update, dash.no_update
+
         if location == last_iso3:
             return dash.no_update, dash.no_update, dash.no_update
 
@@ -34,20 +39,49 @@ def register(app: dash.Dash) -> None:
         if fig_dict is None:
             return {"display": "none"}, {"data": []}, {"last_iso3": ""}
 
-        bbox = hoverData["points"][0]["bbox"]
+        # radar.py ürettiği grafik boyutları (figure() içindeki formülle eşleşmeli)
+        chart_w = int(width * 0.25)
+        chart_h = int(height * 0.33)
+
+        bbox = hoverData["points"][0].get("bbox") or {}
         has_data = any(t.get("type") == "barpolar" for t in fig_dict.get("data", []))
+
+        # Tooltip konumu — bbox yoksa ekranın sağ üstüne sabitle
+        if "x1" in bbox:
+            left_px = int(bbox["x1"]) + 10
+            # Ekran sağından taşmasın
+            left_px = min(left_px, int(width) - chart_w - 16)
+            left_str, right_str = f"{left_px}px", "auto"
+        else:
+            left_str, right_str = "auto", "20px"
+
+        if "y1" in bbox:
+            top_px = int(bbox["y1"]) + 10
+            # Ekran altından taşmasın
+            top_px = min(top_px, int(height) - chart_h - 16)
+            top_str = f"{top_px}px"
+        else:
+            top_str = "80px"
 
         base = {
             "position": "fixed",
-            "top": f"{bbox['y1'] + 10}px",
-            "left": f"{bbox['x1'] + 10}px",
-            "padding": "10px",
+            "top": top_str,
+            "left": left_str,
+            "right": right_str,
             "display": "block",
+            "padding": "0",          # padding yok — grafik tam doldurur
+            "overflow": "hidden",    # taşmayı kes
             "z-index": 9999,
+            "border-radius": "14px",
+            "width": f"{chart_w}px",
+            "height": f"{chart_h}px",
         }
-        style = (
-            {**base, "background-color": "transparent", "width": "20%", "height": "250px"}
-            if has_data
-            else {**base, "border": "1px solid black", "background-color": "white"}
-        )
+        style = {
+            **base,
+            "background": "rgba(10, 18, 36, 0.92)",
+            "backdrop-filter": "blur(28px) saturate(1.6)",
+            "-webkit-backdrop-filter": "blur(28px) saturate(1.6)",
+            "border": "1px solid rgba(56, 130, 246, 0.20)",
+            "box-shadow": "0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.30) inset",
+        }
         return style, fig_dict, {"last_iso3": location}

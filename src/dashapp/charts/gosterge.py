@@ -33,7 +33,7 @@ def figure(
     fact_values = filter_total(merged, year=year, country=iso)["FactValueNumeric"]
 
     plot_bgcolor = "rgba(0,0,0,0)"
-    quadrant_colors = [plot_bgcolor, "#d3382e", "#f2a529", "#eff229", "#85e043"]
+    quadrant_colors = [plot_bgcolor, "#f87171", "#fb923c", "#facc15", "#4ade80"]
     quadrant_text = ["", "<b>Çok yüksek</b>", "<b>Yüksek</b>", "<b>Orta</b>", "<b>Düşük</b>"]
     n_quadrants = len(quadrant_colors) - 1
 
@@ -51,7 +51,7 @@ def figure(
             hole=0.5,
             marker_colors=quadrant_colors,
             text=quadrant_text,
-            textfont=dict(size=7, color="black"),
+            textfont=dict(size=7, color="rgba(255,255,255,0.85)"),
             textinfo="text",
             hoverinfo="skip",
         )],
@@ -61,10 +61,12 @@ def figure(
             width=width * 0.2,
             height=height * 0.2,
             paper_bgcolor=plot_bgcolor,
+            font=dict(color="rgba(255,255,255,0.82)"),
             annotations=[go.layout.Annotation(
-                text=f"<b>pm2.5 seviyesi</b><br>{current_value}",
+                text=f"<b>pm2.5</b><br>{current_value} μg/m³",
                 x=0.5, xanchor="center", xref="paper",
                 y=0.25, yanchor="bottom", yref="paper",
+                font=dict(color="rgba(255,255,255,0.85)", size=11),
                 showarrow=False,
             )],
             shapes=[
