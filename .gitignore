@@ -19,7 +19,10 @@ env/
 
 # Veri (işlenmiş, türetilmiş — ham CSV'ler data/raw/'da kalır)
 data/processed/
-data/static/
+# data/static/borders.json commite dahil; büyük/türetilmiş dosyalar hariç
+
+# Bayrak SVG'leri (scripts/fetch_flags.py ile yeniden üretilir, ~6.5 MB)
+assets/img/flags/
 
 # Dash
 assets/.webassets-cache/
