@@ -31,36 +31,46 @@ def create_app() -> dash.Dash:
     app.config.suppress_callback_exceptions = True
 
     app.layout = dmc.MantineProvider(
-        html.Div([
-            *make_stores(),
-            dcc.Location(id="url", refresh=False),
-            html.Div(id="page-content"),
-            html.Div(id="dummy-input", style={"display": "none"}),
+        html.Div(
+            [
+                *make_stores(),
+                dcc.Location(id="url", refresh=False),
+                html.Div(id="page-content"),
+                html.Div(id="dummy-input", style={"display": "none"}),
 
-            make_toolbar(),
-
-            html.Div(
-                dcc.Graph(
-                    id="Harita",
-                    figure={},
-                    config=_HARITA_CONFIG,
-                    clear_on_unhover=True,
+                # ── Tam viewport harita (z-index 0, en altta) ────────────────
+                html.Div(
+                    dcc.Graph(
+                        id="Harita",
+                        figure={},
+                        config=_HARITA_CONFIG,
+                        clear_on_unhover=True,
+                        style={"width": "100%", "height": "100%"},
+                    ),
+                    style={
+                        "position": "fixed",
+                        "top": 0,
+                        "left": 0,
+                        "width": "100vw",
+                        "height": "100vh",
+                        "zIndex": 0,
+                        "overflow": "hidden",
+                    },
                 ),
-                style={
-                    "position": "absolute",
-                    "top": "0px !important",
-                    "left": "0px !important",
-                    "overflow-y": "hidden",
-                    "margin-top": "-4.6%",
-                },
-            ),
 
-            make_side_panel(),
-            make_chart_panel(),
-            make_hover_panel(),
-            make_info_modal1(),
-            make_info_modal2(),
-        ])
+                # ── Floating toolbar (z-index 9999) ──────────────────────────
+                make_toolbar(),
+
+                # ── Paneller ve modallar ──────────────────────────────────────
+                make_side_panel(),
+                make_chart_panel(),
+                make_hover_panel(),
+                make_info_modal1(),
+                make_info_modal2(),
+            ],
+            style={"position": "relative", "width": "100vw", "height": "100vh"},
+        ),
+        defaultColorScheme="dark",
     )
 
     register_callbacks(app)

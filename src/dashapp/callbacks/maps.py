@@ -81,10 +81,12 @@ def register(app: dash.Dash) -> None:
             oceancolor="#a3d6fb", visible=True,
         )
         fig.update_layout(
-            showlegend=False, autosize=False,
-            width=width, height=height,
-            margin=dict(l=0, r=0, b=0, t=0),
+            showlegend=False,
+            autosize=True,          # container CSS ile tam viewport
+            margin=dict(l=0, r=0, b=0, t=0, pad=0),
             dragmode="turntable",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
         )
 
         if (filter_data or {}).get("is_filtered", 0) == isFiltered:

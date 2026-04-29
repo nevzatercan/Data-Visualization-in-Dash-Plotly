@@ -1,134 +1,177 @@
-"""Alt araç çubuğu: bilgi daireleri, yıl kaydırıcısı, filtre butonları.
+"""Alt araç çubuğu — floating glassmorphism pill.
 
-info_circle3 (media butonu) Faz 5'te kaldırıldı — callback bağlantısı yoktu.
+Bileşenler:
+  info_circle1 / info_circle2 : bilgi modal açıcılar
+  secilenyıl                  : yıl kaydırıcısı (2010-2019)
+  yesilbuton / sarıbuton / turuncubutton / kırmızıbuton : PM2.5 filtre segmentleri
 """
 from __future__ import annotations
 
 from dash import html
 import dash_mantine_components as dmc
+from dash_iconify import DashIconify
 
-# Filtre butonları — (id, renk). Renk değerleri kasıtlı olarak daha koyu/doygun;
-# veri görselleştirme threshold renkleri (theme.THRESHOLD_COLORS) ile aynı değil.
-_FILTER_BUTTONS = [
-    ("yesilbuton",    "#85e043"),
-    ("sarıbuton",     "#eff229"),
-    ("turuncubutton", "#f2a529"),
-    ("kırmızıbuton",  "#d3382e"),
+# Filtre segmentleri — (id, hex-renk, tooltip-etiket)
+_FILTER_SEGMENTS = [
+    ("yesilbuton",    "#78c850", "İyi  ≤ 18 μg/m³"),
+    ("sarıbuton",     "#e8e840", "Orta  ≤ 31 μg/m³"),
+    ("turuncubutton", "#f0941c", "Kötü  ≤ 48 μg/m³"),
+    ("kırmızıbuton",  "#d43030", "Tehlikeli  > 48 μg/m³"),
 ]
 
-_FILTER_BTN_BASE_STYLE = {
-    "width": "25%",
-    "height": "100%",
-    "float": "left",
-    "cursor": "pointer",
-}
+# Köşe yarıçapları — sol uç / orta / sağ uç
+_RADIUS = ["8px 0 0 8px", "0", "0", "0 8px 8px 0"]
 
 
 def make_toolbar() -> html.Div:
-    """Sabit konumlu alt araç çubuğunu döndürür."""
+    """Ekranın altına sabitlenmiş floating glassmorphism araç çubuğu."""
     return html.Div(
-        [
-            # Sol: bilgi daireleri
-            html.Div(
-                [
-                    dmc.ActionIcon(
-                        html.Img(
-                            src="assets/img/world.png",
-                            style={"width": "80%", "margin": "10%"},
-                        ),
-                        id="info_circle1",
-                        size=50,
-                        radius="xl",
-                        variant="white",
-                        style={
-                            "border": "1px solid black",
-                            "box-shadow": "rgba(0,0,0,0.35) 0px 5px 15px",
-                        },
-                    ),
-                    dmc.ActionIcon(
-                        html.Img(
-                            src="assets/img/table.png",
-                            style={"width": "82%", "margin": "9%"},
-                        ),
-                        id="info_circle2",
-                        size=50,
-                        radius="xl",
-                        variant="white",
-                        style={
-                            "border": "1px solid black",
-                            "box-shadow": "rgba(0,0,0,0.35) 0px 5px 15px",
-                        },
-                    ),
-                ],
-                id="info_icons",
-                style={
-                    "float": "left",
-                    "width": "30%",
-                    "height": "100%",
-                    "display": "flex",
-                    "justify-content": "space-around",
-                    "align-items": "center",
-                },
-            ),
-            # Orta: yıl kaydırıcısı
-            html.Div(
-                dmc.Slider(
-                    id="secilenyıl",
-                    min=2010,
-                    max=2019,
-                    step=1,
-                    value=2010,
-                    marks=[{"value": i, "label": str(i)} for i in range(2010, 2020)],
-                    labelAlwaysOn=True,
-                    style={"width": "100%"},
-                ),
-                style={
-                    "float": "left",
-                    "width": "30%",
-                    "height": "100%",
-                    "display": "flex",
-                    "align-items": "center",
-                    "padding": "0 2%",
-                    "z-index": "9",
-                },
-            ),
-            # Sağ: renk filtresi butonları (4 renkli segment)
-            html.Div(
+        # ── Outer centering wrapper ──────────────────────────────────────────
+        html.Div(
+            [
+                # ── 1. Bilgi ikonları ────────────────────────────────────────
                 html.Div(
                     [
-                        html.Div(
-                            id=btn_id,
-                            style={**_FILTER_BTN_BASE_STYLE, "backgroundColor": color},
-                        )
-                        for btn_id, color in _FILTER_BUTTONS
+                        dmc.Tooltip(
+                            dmc.ActionIcon(
+                                DashIconify(icon="lucide:globe", width=20, color="rgba(255,255,255,0.85)"),
+                                id="info_circle1",
+                                size=42,
+                                radius="xl",
+                                variant="subtle",
+                                className="info-btn",
+                                style={"border": "1px solid rgba(255,255,255,0.15)"},
+                            ),
+                            label="Bölgesel PM2.5 haritası",
+                            position="top",
+                            withArrow=True,
+                        ),
+                        dmc.Tooltip(
+                            dmc.ActionIcon(
+                                DashIconify(icon="lucide:table-2", width=20, color="rgba(255,255,255,0.85)"),
+                                id="info_circle2",
+                                size=42,
+                                radius="xl",
+                                variant="subtle",
+                                className="info-btn",
+                                style={"border": "1px solid rgba(255,255,255,0.15)"},
+                            ),
+                            label="Veri tablosu",
+                            position="top",
+                            withArrow=True,
+                        ),
                     ],
                     style={
-                        "width": "90%",
-                        "height": "60%",
-                        "borderRadius": "25px",
-                        "overflow": "hidden",
-                        "position": "relative",
-                        "margin-left": "5%",
-                        "margin-right": "5%",
-                        "margin-top": "2%",
+                        "display": "flex",
+                        "gap": "10px",
+                        "alignItems": "center",
+                        "flexShrink": 0,
                     },
                 ),
-                id="infoImg",
-                style={
-                    "float": "right",
-                    "width": "40%",
-                    "height": "100%",
-                    "z-index": "9",
-                },
-            ),
-        ],
+
+                # ── Dikey ayraç ──────────────────────────────────────────────
+                html.Div(style={
+                    "width": "1px", "height": "40px",
+                    "background": "rgba(255,255,255,0.12)",
+                    "flexShrink": 0,
+                }),
+
+                # ── 2. Yıl kaydırıcısı ───────────────────────────────────────
+                html.Div(
+                    [
+                        html.Div("YIL", className="panel-label"),
+                        dmc.Slider(
+                            id="secilenyıl",
+                            min=2010, max=2019, step=1, value=2010,
+                            marks=[{"value": i, "label": str(i)} for i in range(2010, 2020)],
+                            labelAlwaysOn=True,
+                            className="toolbar-slider",
+                            style={"width": "100%"},
+                        ),
+                    ],
+                    style={
+                        "flex": 1,
+                        "minWidth": 0,
+                        "paddingTop": "4px",
+                    },
+                ),
+
+                # ── Dikey ayraç ──────────────────────────────────────────────
+                html.Div(style={
+                    "width": "1px", "height": "40px",
+                    "background": "rgba(255,255,255,0.12)",
+                    "flexShrink": 0,
+                }),
+
+                # ── 3. PM2.5 filtre barı ─────────────────────────────────────
+                html.Div(
+                    [
+                        html.Div("PM2.5 FİLTRE", className="panel-label", style={"textAlign": "center"}),
+                        # Renkli segment barı
+                        html.Div(
+                            [
+                                dmc.Tooltip(
+                                    html.Div(
+                                        id=btn_id,
+                                        className="filter-seg",
+                                        style={
+                                            "flex": 1,
+                                            "height": "28px",
+                                            "backgroundColor": color,
+                                            "borderRadius": radius,
+                                        },
+                                    ),
+                                    label=label,
+                                    position="top",
+                                    withArrow=True,
+                                )
+                                for (btn_id, color, label), radius
+                                in zip(_FILTER_SEGMENTS, _RADIUS)
+                            ],
+                            id="infoImg",
+                            style={
+                                "display": "flex",
+                                "borderRadius": "8px",
+                                "overflow": "hidden",
+                                "boxShadow": "0 2px 12px rgba(0,0,0,0.4)",
+                            },
+                        ),
+                        # Eşik değerleri
+                        html.Div(
+                            [html.Span(lbl, style={"flex": 1, "textAlign": "center", "color": "rgba(255,255,255,0.45)", "fontSize": "9px"})
+                             for lbl in ("≤18", "≤31", "≤48", ">48")],
+                            style={"display": "flex", "marginTop": "4px"},
+                        ),
+                    ],
+                    style={"minWidth": "220px", "flexShrink": 0},
+                ),
+            ],
+            # ── Glass container ───────────────────────────────────────────────
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "gap": "20px",
+                "background": "rgba(13, 17, 30, 0.72)",
+                "backdropFilter": "blur(28px) saturate(1.5)",
+                "WebkitBackdropFilter": "blur(28px) saturate(1.5)",
+                "border": "1px solid rgba(255, 255, 255, 0.10)",
+                "borderRadius": "20px",
+                "padding": "14px 22px 18px",
+                "boxShadow": (
+                    "0 8px 32px rgba(0,0,0,0.50), "
+                    "0 2px 8px rgba(0,0,0,0.30), "
+                    "inset 0 1px 0 rgba(255,255,255,0.08)"
+                ),
+            },
+        ),
+        # ── Outer positioning wrapper ────────────────────────────────────────
         style={
             "position": "fixed",
-            "bottom": "4px",
-            "left": "0",
-            "width": "100%",
-            "height": "10%",
-            "background-color": "transparent",
-            "z-index": "9",
+            "bottom": "20px",
+            "left": "50%",
+            "transform": "translateX(-50%)",
+            "width": "calc(100% - 40px)",
+            "maxWidth": "1060px",
+            "zIndex": 9999,
         },
     )

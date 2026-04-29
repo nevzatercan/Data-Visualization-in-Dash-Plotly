@@ -17,24 +17,39 @@ from dashapp.transforms import colorchoose, filter_total, safe_first
 from dashapp.utils.translations import to_turkish
 
 _CHART_PANEL_STYLE: dict = {
-    "position": "fixed", "top": 0, "right": 0,
-    "margin-top": "6.25%", "margin-right": "5%",
-    "margin-bottom": "6.25%", "margin-left": "25%",
-    "width": "70.5%", "height": "75%",
-    "background-color": "rgb(255,255,255,0.95)",
-    "z-index": "1000", "display": "inline-block",
-    "border-radius": "15px",
-    "box-shadow": "0 8px 16px rgba(0, 0, 0, 0.2)",
-    "border": "1px solid rgb(135,135,135)",
+    "position": "fixed",
+    "top": "50%",
+    "right": "2%",
+    "transform": "translateY(-50%)",
+    "width": "68%",
+    "height": "78%",
+    "z-index": "1000",
+    "display": "block",
+    "border-radius": "16px",
+    "padding": "0",
+    "overflow": "hidden",
+    # glass-dark eşdeğeri (CSS sınıfı da eklendi — ama inline de korunuyor)
+    "background": "rgba(13, 17, 30, 0.80)",
+    "backdrop-filter": "blur(28px) saturate(1.4)",
+    "-webkit-backdrop-filter": "blur(28px) saturate(1.4)",
+    "border": "1px solid rgba(255, 255, 255, 0.10)",
+    "box-shadow": "0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)",
 }
 _SIDE_PANEL_BASE_STYLE: dict = {
-    "display": "inline-block",
-    "width": "18%", "height": "75%",
-    "position": "fixed", "margin-top": "5.75%",
-    "margin-bottom": "6.25%", "margin-left": "5%",
-    "border-radius": "15px",
-    "box-shadow": "0 8px 16px rgba(0, 0, 0, 0.2)",
-    "border": "1px solid rgb(135,135,135)",
+    "display": "block",
+    "width": "18%",
+    "height": "78%",
+    "position": "fixed",
+    "top": "50%",
+    "left": "2%",
+    "transform": "translateY(-50%)",
+    "border-radius": "16px",
+    "overflow": "hidden",
+    "background": "rgba(13, 17, 30, 0.80)",
+    "backdrop-filter": "blur(28px) saturate(1.4)",
+    "-webkit-backdrop-filter": "blur(28px) saturate(1.4)",
+    "border": "1px solid rgba(255, 255, 255, 0.10)",
+    "box-shadow": "0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)",
 }
 
 
@@ -94,11 +109,11 @@ def register(app: dash.Dash) -> None:
         )
 
         norm_value = safe_first(filtered_df["NormalizationForFactValueNumeric"])
-        cloud_img, cloud_bg = colorchoose(norm_value)
+        cloud_img, _cloud_bg = colorchoose(norm_value)   # _cloud_bg artık kullanılmıyor
 
         return (
             _CHART_PANEL_STYLE,
-            {**_SIDE_PANEL_BASE_STYLE, "background-color": cloud_bg},
+            _SIDE_PANEL_BASE_STYLE,  # glassmorphism — PM2.5 seviyesi zaten pm25img ile gösteriliyor
             cloud_img,
             text,
             _histogram_chart.figure(option_slctd, clicked_location, width=width, height=height, country_name=country_name_tr),
