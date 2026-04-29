@@ -210,16 +210,23 @@ def make_chart_panel() -> html.Div:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def make_hover_panel() -> html.Div:
-    """Harita hover radar tooltip — başlangıçta gizli."""
+    """Harita hover radar tooltip — başlangıçta gizli.
+
+    Boyut ve konum hover callback'i tarafından dinamik olarak ayarlanır.
+    Graf, kapsayıcıyı tam doldurur; taşma kesilir.
+    """
     return html.Div(
-        [dcc.Graph(id="gül", figure={}, config=_GC)],
+        [
+            dcc.Graph(
+                id="gül",
+                figure={},
+                config=_GC,
+                style={"width": "100%", "height": "100%"},
+            )
+        ],
         id="hovered_location",
-        style={
-            "display": "none",
-            "width": "20%",
-            "height": "250px",
-            "background": "transparent",
-        },
+        # Başlangıç stili — callback "display: block" + tam px boyutlarını yazar
+        style={"display": "none", "overflow": "hidden"},
     )
 
 

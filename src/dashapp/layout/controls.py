@@ -11,16 +11,60 @@ from dash import html
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
-# Filtre segmentleri — (id, hex-renk, tooltip-etiket)
+# Filtre segmentleri — (id, hex-renk, kısa-ad, eşik-etiket)
 _FILTER_SEGMENTS = [
-    ("yesilbuton",    "#22c55e", "İyi  ≤ 18 μg/m³"),
-    ("sarıbuton",     "#eab308", "Orta  ≤ 31 μg/m³"),
-    ("turuncubutton", "#f97316", "Kötü  ≤ 48 μg/m³"),
-    ("kırmızıbuton",  "#ef4444", "Tehlikeli  > 48 μg/m³"),
+    ("yesilbuton",    "#22c55e", "İyi",       "≤ 18 μg/m³"),
+    ("sarıbuton",     "#eab308", "Orta",      "≤ 31 μg/m³"),
+    ("turuncubutton", "#f97316", "Kötü",      "≤ 48 μg/m³"),
+    ("kırmızıbuton",  "#ef4444", "Tehlikeli", "> 48 μg/m³"),
 ]
 
 # Köşe yarıçapları — sol uç / orta / sağ uç
 _RADIUS = ["8px 0 0 8px", "0", "0", "0 8px 8px 0"]
+
+# Segment metin rengi: koyu/açık arka plana göre
+_TEXT_COLOR = [
+    "rgba(0,0,0,0.75)",   # yeşil — açık
+    "rgba(0,0,0,0.75)",   # sarı — açık
+    "rgba(255,255,255,0.92)",  # turuncu — koyu metin daha okunur
+    "rgba(255,255,255,0.92)",  # kırmızı — koyu metin daha okunur
+]
+
+
+def _info_btn(icon: str, btn_id: str, label: str) -> html.Div:
+    """İkon + görünür etiket içeren tıklanabilir bilgi butonu."""
+    return html.Div(
+        [
+            DashIconify(icon=icon, width=20, color="rgba(56,189,248,0.88)"),
+            html.Span(
+                label,
+                style={
+                    "fontSize": "9px",
+                    "fontWeight": "600",
+                    "letterSpacing": "0.5px",
+                    "color": "rgba(148, 163, 184, 0.80)",
+                    "textAlign": "center",
+                    "lineHeight": "1.2",
+                    "maxWidth": "52px",
+                },
+            ),
+        ],
+        id=btn_id,
+        n_clicks=0,
+        style={
+            "display": "flex",
+            "flexDirection": "column",
+            "alignItems": "center",
+            "gap": "4px",
+            "padding": "8px 10px",
+            "borderRadius": "12px",
+            "border": "1px solid rgba(56,130,246,0.22)",
+            "background": "rgba(56,130,246,0.06)",
+            "cursor": "pointer",
+            "minWidth": "58px",
+            "transition": "background 0.15s ease",
+        },
+    )
 
 
 def make_toolbar() -> html.Div:
@@ -29,42 +73,16 @@ def make_toolbar() -> html.Div:
         # ── Outer centering wrapper ──────────────────────────────────────────
         html.Div(
             [
-                # ── 1. Bilgi ikonları ────────────────────────────────────────
+                # ── 1. Bilgi butonları (ikon + etiket) ───────────────────────
                 html.Div(
                     [
-                        dmc.Tooltip(
-                            dmc.ActionIcon(
-                                DashIconify(icon="lucide:globe", width=20, color="rgba(56,189,248,0.85)"),
-                                id="info_circle1",
-                                size=42,
-                                radius="xl",
-                                variant="subtle",
-                                className="info-btn",
-                                style={"border": "1px solid rgba(56,130,246,0.22)"},
-                            ),
-                            label="Bölgesel PM2.5 haritası",
-                            position="top",
-                            withArrow=True,
-                        ),
-                        dmc.Tooltip(
-                            dmc.ActionIcon(
-                                DashIconify(icon="lucide:table-2", width=20, color="rgba(56,189,248,0.85)"),
-                                id="info_circle2",
-                                size=42,
-                                radius="xl",
-                                variant="subtle",
-                                className="info-btn",
-                                style={"border": "1px solid rgba(56,130,246,0.22)"},
-                            ),
-                            label="Veri tablosu",
-                            position="top",
-                            withArrow=True,
-                        ),
+                        _info_btn("lucide:globe",   "info_circle1", "PM2.5\nHarita"),
+                        _info_btn("lucide:table-2", "info_circle2", "Veri\nTablosu"),
                     ],
                     style={
                         "display": "flex",
                         "gap": "10px",
-                        "alignItems": "center",
+                        "alignItems": "stretch",
                         "flexShrink": 0,
                     },
                 ),
@@ -74,6 +92,7 @@ def make_toolbar() -> html.Div:
                     "width": "1px", "height": "40px",
                     "background": "rgba(56, 130, 246, 0.15)",
                     "flexShrink": 0,
+                    "alignSelf": "center",
                 }),
 
                 # ── 2. Yıl kaydırıcısı ───────────────────────────────────────
@@ -101,32 +120,57 @@ def make_toolbar() -> html.Div:
                     "width": "1px", "height": "40px",
                     "background": "rgba(56, 130, 246, 0.15)",
                     "flexShrink": 0,
+                    "alignSelf": "center",
                 }),
 
                 # ── 3. PM2.5 filtre barı ─────────────────────────────────────
                 html.Div(
                     [
                         html.Div("PM2.5 FİLTRE", className="panel-label", style={"textAlign": "center"}),
-                        # Renkli segment barı
+                        # Renkli segment barı — her segment kendi adını ve eşiğini gösterir
                         html.Div(
                             [
-                                dmc.Tooltip(
-                                    html.Div(
-                                        id=btn_id,
-                                        className="filter-seg",
-                                        style={
-                                            "flex": 1,
-                                            "height": "28px",
-                                            "backgroundColor": color,
-                                            "borderRadius": radius,
-                                        },
-                                    ),
-                                    label=label,
-                                    position="top",
-                                    withArrow=True,
+                                html.Div(
+                                    [
+                                        html.Span(
+                                            name,
+                                            style={
+                                                "fontSize": "10px",
+                                                "fontWeight": "700",
+                                                "color": txt_color,
+                                                "lineHeight": "1.1",
+                                            },
+                                        ),
+                                        html.Span(
+                                            threshold,
+                                            style={
+                                                "fontSize": "8px",
+                                                "color": txt_color,
+                                                "opacity": "0.85",
+                                                "lineHeight": "1.1",
+                                            },
+                                        ),
+                                    ],
+                                    id=btn_id,
+                                    n_clicks=0,
+                                    className="filter-seg",
+                                    style={
+                                        "flex": 1,
+                                        "height": "42px",
+                                        "backgroundColor": color,
+                                        "borderRadius": radius,
+                                        "display": "flex",
+                                        "flexDirection": "column",
+                                        "alignItems": "center",
+                                        "justifyContent": "center",
+                                        "gap": "1px",
+                                        "cursor": "pointer",
+                                        "padding": "0 4px",
+                                        "transition": "filter 0.15s ease",
+                                    },
                                 )
-                                for (btn_id, color, label), radius
-                                in zip(_FILTER_SEGMENTS, _RADIUS)
+                                for (btn_id, color, name, threshold), radius, txt_color
+                                in zip(_FILTER_SEGMENTS, _RADIUS, _TEXT_COLOR)
                             ],
                             id="infoImg",
                             style={
@@ -135,12 +179,6 @@ def make_toolbar() -> html.Div:
                                 "overflow": "hidden",
                                 "boxShadow": "0 2px 12px rgba(0,0,0,0.4)",
                             },
-                        ),
-                        # Eşik değerleri
-                        html.Div(
-                            [html.Span(lbl, style={"flex": 1, "textAlign": "center", "color": "rgba(148, 163, 184, 0.55)", "fontSize": "9px"})
-                             for lbl in ("≤18", "≤31", "≤48", ">48")],
-                            style={"display": "flex", "marginTop": "4px"},
                         ),
                     ],
                     style={"minWidth": "220px", "flexShrink": 0},
