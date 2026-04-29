@@ -73,8 +73,8 @@ def figure(
     fig.update_layout(
         **TRANSPARENT_LAYOUT,
         title="Yaş Gruplarına Göre Cinsiyet Bazında ve Dünya Genelinde Ölüm Oranı",
-        xaxis=dict(title="Yaş Grupları", tickangle=0, tickfont=dict(color="black", size=10), titlefont=dict(color="black")),
-        yaxis=dict(title="Ölüm Oranı", tickfont=dict(color="black"), titlefont=dict(color="black")),
+        xaxis=dict(title="Yaş Grupları", tickangle=0, tickfont=dict(color="black", size=10), title_font=dict(color="black")),
+        yaxis=dict(title="Ölüm Oranı", tickfont=dict(color="black"), title_font=dict(color="black")),
         barmode="group",
         width=width * 0.46,
         height=height * 0.2475,
